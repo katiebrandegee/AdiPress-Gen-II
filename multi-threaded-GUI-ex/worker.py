@@ -1,7 +1,6 @@
 import time
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
-# Step 1: Create a worker class
 class Worker(QObject):
 
     # define signals (must be defined as class attributes like done here)

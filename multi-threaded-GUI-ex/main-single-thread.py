@@ -37,4 +37,4 @@ class GUI(QMainWindow):
 app = QApplication(sys.argv)
 gui = GUI()
 gui.show()
-sys.exit(app.exec())
+sys.exit(app.exec_())
