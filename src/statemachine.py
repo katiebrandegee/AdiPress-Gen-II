@@ -1,4 +1,5 @@
 import states
+from main import GUI
 # from states import WelcomeState, HomeState # TODO include rest of states
 from PyQt5.QtCore import QTimer, QObject, pyqtSignal, pyqtSlot
 
@@ -17,8 +18,9 @@ class StateMachine(QObject):
 
     stateChangedSignal = pyqtSignal(str)
 
-    def __init__(self, parsedConfig: dict, *, parent=None):
+    def __init__(self, gui: GUI, parsedConfig: dict, *, parent=None):
         super().__init__(parent)
+        self._gui = gui
         self._parsedConfig = parsedConfig
         self.readRelevantConfigVars(self._parsedConfig)
         self._states = self.defineStateDict((states.WelcomeState(self, self._parsedConfig, parent=self), states.HomeState(self, self._parsedConfig, parent=self)))
@@ -71,11 +73,15 @@ class StateMachine(QObject):
 
 # TODO remove --> for testing only
 if __name__ == "__main__":
+    import sys
     from configparser import ConfigParser
+    from PyQt5.QtWidgets import QApplication
+    app = QApplication(sys.argv)
+    gui = GUI()
     parsedConfig = ConfigParser()
     parsedConfig.read("config.ini")
     parsedConfig = {section: dict(parsedConfig.items(section)) for section in parsedConfig.sections()}
-    SM = StateMachine(parsedConfig)
+    SM = StateMachine(gui, parsedConfig)
     print(SM._firstStateName)
     print(SM._states)
     print(SM._states['welcome'].name)

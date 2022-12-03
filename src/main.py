@@ -1,5 +1,6 @@
 import sys
 # from GUIDefinition import GUIComponents, GUITransitions
+import statemachine
 from configparser import ConfigParser
 from PyQt5.QtCore import QTimer, QThread, pyqtSlot
 from PyQt5.QtWidgets import QApplication, QMainWindow
@@ -29,7 +30,7 @@ class GUI(QMainWindow):
 
         self.iterateLoops = 0
         self.state = self._stateWelcome
-        self.iterateTimer.start(1000.0/self._iterateFreqHz)
+        # self.iterateTimer.start(1000.0/self._iterateFreqHz)
 
     def parseConfig(self):
         self.parsedConfig = ConfigParser()
