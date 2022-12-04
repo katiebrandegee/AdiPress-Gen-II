@@ -1,7 +1,21 @@
 # AdiPress-Gen-II
+
+## Description
+
 AdiPress Gen II Code  
 
-new branch: **nh-concurrency-testing**  
-branch opened 11/28  
-branch sole purpose to test basic concurrency functionality using PyQt5  
-branch intended as test ground, to be deleted after zero merges to stable main branch  
+## Dependencies
+
+1. Python3 (TODO confirm required version (>=3.6?))
+2. PyQt5
+
+## Instructions
+
+The GUI can be run the following command:
+```bash
+python3 main.py
+```
+
+## Licenses
+
+All rights reserved by Parker Isaac Instruments.
