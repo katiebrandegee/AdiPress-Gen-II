@@ -17,7 +17,7 @@ class StateMachine(QObject):
     _firstStateName = 'welcome' # TODO change
     _configFileSectionName = 'StateMachine'
     
-    def __init__(self, parsedConfig: dict, gui, *, parent=None):
+    def __init__(self, parsedConfig: dict[str, dict[str, str]], gui, *, parent=None):
         super().__init__(parent)
         self._gui = gui
         self._parsedConfig = parsedConfig
@@ -31,7 +31,7 @@ class StateMachine(QObject):
 
     # only function that "magically" adds instance vars (i.e. class member vars)
     # only hard-coded section, var names (e.g. iteratefreqhz) must match lower case keys in config.ini 
-    def readRelevantConfigVars(self, parsedConfig: dict):
+    def readRelevantConfigVars(self, parsedConfig: dict[str, dict[str, str]]):
         configFile = parsedConfig['CONFIG_FILE_NAME'] if 'CONFIG_FILE_NAME' in parsedConfig else 'config file'
         if (self._configFileSectionName not in parsedConfig):
             raise Exception(f"'{self._configFileSectionName}' section not found in {configFile}...")
@@ -42,14 +42,14 @@ class StateMachine(QObject):
             raise Exception(f"All required configurable parameters were not found under the '{self._configFileSectionName}' or 'DEFAULT' sections in {configFile}...")
 
 
-    def constructStates(self, parsedConfig: dict) -> tuple:
+    def constructStates(self, parsedConfig: dict[str, dict[str, str]]) -> tuple[States.State]:
         allStates = list()
         allStates.append(States.WelcomeState(parsedConfig=parsedConfig, stateMachine=self, parent=self))
         allStates.append(States.HomeState(parsedConfig=parsedConfig, stateMachine=self, parent=self))
         # TODO: add all states
         return tuple(allStates)
 
-    def defineStateDict(self, allStates: tuple) -> dict:
+    def defineStateDict(self, allStates: tuple[States.State]) -> dict[str, States.State]:
         return {st.name: st for st in allStates}
 
     # make all signal/slot connections
@@ -84,11 +84,11 @@ class StateMachine(QObject):
         self._iterateTimer.stop()
         # potentially emit signal to states within machine
 
-    def getStateNames(self) -> list:
-        """Get list of all state names defined within the state machine"""
+    def getStateNames(self) -> list[str]:
+        """Get list of all state names as strings defined within the state machine"""
         return [stateName for stateName in self._states.keys()]
 
-    def getStates(self) -> dict:
+    def getStates(self) -> dict[str, States.State]:
         """Get dictionary of all states defined within the state machine of the form {stateName: stateObject}"""
         return self._states
         

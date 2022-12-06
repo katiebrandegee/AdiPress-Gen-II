@@ -5,7 +5,6 @@ from configparser import ConfigParser
 from PyQt5.QtCore import QTimer, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
-
 class GUI(QMainWindow):
 
     aboutToQuit = pyqtSignal()
@@ -20,16 +19,16 @@ class GUI(QMainWindow):
         # self.guiComponents = GUIComponents(self)
         # self.guiTransitions = GUITransitions(self)
         self._parsedConfig = self.parseConfig()
-        self.iterateTimer = QTimer(self)
-        # self.iterateLoops = 0
+
         self._otherThreads = self.constructThreads(self._additionalThreads)
         self._machine = self.constructStateMachine()
+        # self._interruptHandler = self.constructInterruptHandler()
         self.setupConnections()
-        
+
+        # self.setupUI()
         # TODO define function for all startup behavior including below
         self._otherThreads[self._threadNameStateMachine].start()
-
-        # self.iterateTimer.start(1000.0/self._iterateFreqHz)
+        # self._otherThreads[self._threadNameInterruptHandler].start()
 
     def parseConfig(self) -> dict[str, dict[str, str]]:
         parsedConfig = ConfigParser()
@@ -54,7 +53,7 @@ class GUI(QMainWindow):
         machine = StateMachine(self._parsedConfig, self)
         newThread = self._otherThreads[self._threadNameStateMachine]
         machine.moveToThread(newThread)
-        
+
         # TODO move to setupConnections()
         newThread.started.connect(machine.run)
         newThread.finished.connect(newThread.deleteLater)
@@ -67,16 +66,6 @@ class GUI(QMainWindow):
         self.aboutToQuit.emit()
         # TODO ensure all threads finished and QObjects deleted
 
-    # def iterate(self):
-    #     self.iterateLoops += 1
-    #     print(' ')
-    #     print(self.state)
-    #     if (self.state in self.stateFns.keys()):
-    #         self.stateFns[self.state]()
-    #     else:
-    #         print('false')
-    #     self.state = self._stateSettings
-    #     print(self.iterateLoops)
 
 
 
@@ -91,14 +80,14 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     gui = GUI()
     parsedConfig = ConfigParser()
-    SM = StateMachine(parsedConfig=gui._parsedConfig, gui=gui)
-    print(SM._firstStateName)
-    print(SM._states)
-    print(SM._states['welcome'].name)
-    print(SM._states['welcome']._machine)
-    print(SM._states['welcome']._parsedConfig)
-    print(SM.getStateNames())
-    print(SM.getStates())
+    # SM = StateMachine(parsedConfig=gui._parsedConfig, gui=gui)
+    # print(SM._firstStateName)
+    # print(SM._states)
+    # print(SM._states['welcome'].name)
+    # print(SM._states['welcome']._machine)
+    # print(SM._states['welcome']._parsedConfig)
+    # print(SM.getStateNames())
+    # print(SM.getStates())
     print(gui._otherThreads)
     gui.show()
     sys.exit(app.exec_())
