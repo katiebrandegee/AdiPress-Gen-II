@@ -37,7 +37,7 @@ class StateMachine(QObject):
             raise Exception(f"'{self._configFileSectionName}' section not found in {configFile}...")
         try:
             # TODO add any other configurable parameters here
-            self._iterateFreqHz = parsedConfig[self._configFileSectionName]['iteratefreqhz']
+            self._iterateFreqHz = int(parsedConfig[self._configFileSectionName]['iteratefreqhz'])
         except:
             raise Exception(f"All required configurable parameters were not found under the '{self._configFileSectionName}' or 'DEFAULT' sections in {configFile}...")
 
@@ -67,7 +67,7 @@ class StateMachine(QObject):
     @pyqtSlot()
     def run(self):
         """Slot that begins state machine iteration process to continue indefinitely"""
-        self._iterateTimer.start(round(1000.0/(1.0*int(self._iterateFreqHz))))
+        self._iterateTimer.start(round(1000.0/(1.0*self._iterateFreqHz)))
 
     # iterating (looping) at self._iterateFreqHz, using QTimer to loop allows signals/slots to execute in between loop iterations
     # self.currState modifiable within each State when State.exitCondition met

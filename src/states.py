@@ -23,14 +23,17 @@ class State(QObject):
             raise Exception(f"'{self._configFileSectionName}' section not found in {configFile}...")
         try:
             # TODO add any other configurable parameters here
-            self._iterateFreqHz = parsedConfig[self._configFileSectionName]['iteratefreqhz']
+            self._iterateFreqHz = int(parsedConfig[self._configFileSectionName]['iteratefreqhz'])
         except:
             raise Exception(f"All required configurable parameters were not found under the '{self._configFileSectionName}' or 'DEFAULT' sections in {configFile}...")
 
-    def run(self):
+    def enter(self):
         pass
 
     def exit(self):
+        pass
+
+    def run(self):
         pass
     
 
@@ -40,7 +43,7 @@ class WelcomeState(State):
         super().__init__(parsedConfig, stateMachine, parent=parent)
         self.readRelevantConfigVars(self._parsedConfig)
         self._sstimer = QTimer(self)
-        self._sstimer.setSingleShot(True)
+        # self._sstimer.setSingleShot(True)
         self._sstimer.timeout.connect(self.timeout)
 
     @property
@@ -53,7 +56,7 @@ class WelcomeState(State):
             raise Exception(f"'{self._configFileSectionName}' section not found in {configFile}...")
         try:
             # TODO add any other configurable parameters here
-            self._sstimerDurationSec = parsedConfig[self._configFileSectionName]['welcomescreendurationsec']
+            self._sstimerDurationSec = float(parsedConfig[self._configFileSectionName]['welcomescreendurationsec'])
         except:
             raise Exception(f"All required configurable parameters were not found under the '{self._configFileSectionName}' or 'DEFAULT' sections in {configFile}...")
 
@@ -61,22 +64,24 @@ class WelcomeState(State):
     def timeout(self):
         self._exitCondition = True
 
+    def enter(self):
+        self._exitCondition = False
+        self._sstimer.start(round(self._sstimerDurationSec*1000.0))
+        print(f'\nstate: {self.name}') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
+
     def exit(self):
         self._machine.setCurrentState('home')
         self._sstimer.stop()
-        # TODO fully delete/reset singleshot timer so WelcomeState doesn't immediately exit if jumped to again
         print(f'{self.name} exiting...') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
 
     def run(self):
+        
+        if (not self._sstimer.isActive()):
+            self.enter()
 
         if (self._exitCondition):
-            self.exit()
-            return
+            self.exit()        
 
-        if (not self._sstimer.isActive()):
-            self._sstimer.start(round(float(self._sstimerDurationSec)*1000.0))
-            print(f'\nstate: {self.name}') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
-        
 
 class HomeState(State):
 
@@ -135,6 +140,17 @@ class HomeState(State):
         if (self._plungerCheckPassed and self._compressionDrawerCheckPassed and self._filtrateDrawerCheckPassed):
             self._exitCondition = True
 
+    def enter(self):
+        self._exitCondition = False
+        self._plungerCheckPassed = False
+        self._filtrateDrawerCheckPassed = False
+        self._compressionDrawerCheckPassed = False
+        self.plungerStatusChanged.emit(self._plungerCheckPassed)
+        self.compressionDrawerStatusChanged.emit(self._filtrateDrawerCheckPassed)
+        self.filtrateDrawerStatusChanged.emit(self._compressionDrawerCheckPassed)
+        self._iterateTimer.start(round(1000.0/(1.0*self._iterateFreqHz)))
+        print(f'state: {self.name}') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
+
     def exit(self):
         self._machine.setCurrentState('welcome') # TODO update once other states defined
         self._iterateTimer.stop()
@@ -142,13 +158,8 @@ class HomeState(State):
 
     def run(self):
         
+        if (not self._iterateTimer.isActive()):
+            self.enter()
+
         if (self._exitCondition):
             self.exit()
-            return
-
-        if (not self._iterateTimer.isActive()):
-            self.plungerStatusChanged.emit(self._plungerCheckPassed)
-            self.compressionDrawerStatusChanged.emit(self._filtrateDrawerCheckPassed)
-            self.filtrateDrawerStatusChanged.emit(self._compressionDrawerCheckPassed)
-            self._iterateTimer.start(round(1000.0/(1.0*int(self._iterateFreqHz))))
-            print(f'state: {self.name}') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
