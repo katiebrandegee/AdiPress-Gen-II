@@ -2,6 +2,7 @@ from PyQt5.QtCore import QTimer, QObject, pyqtSignal, pyqtSlot
 
 class State(QObject):
 
+    _nullInt = -1
     _exitCondition = False
     _configFileSectionName = 'States'
 
@@ -43,12 +44,11 @@ class WelcomeState(State):
         super().__init__(parsedConfig, stateMachine, parent=parent)
         self.readRelevantConfigVars(self._parsedConfig)
         self._sstimer = QTimer(self)
-        # self._sstimer.setSingleShot(True)
         self._sstimer.timeout.connect(self.timeout)
 
     @property
     def name(self):
-        return 'welcome'
+        return 'Welcome'
 
     def readRelevantConfigVars(self, parsedConfig: dict[str, dict[str, str]]):
         configFile = parsedConfig['CONFIG_FILE_NAME'] if 'CONFIG_FILE_NAME' in parsedConfig else 'config file'
@@ -70,7 +70,9 @@ class WelcomeState(State):
         print(f'\nstate: {self.name}') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
 
     def exit(self):
-        self._machine.setCurrentState('home')
+        newStateName = 'MachineSetup'
+        if (not self._machine.setCurrentState(newStateName)): 
+            raise Exception(f"Could not change current state of state machine to state named '{newStateName}'...")
         self._sstimer.stop()
         print(f'{self.name} exiting...') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
 
@@ -82,8 +84,55 @@ class WelcomeState(State):
         if (self._exitCondition):
             self.exit()        
 
+# MachineSetupScreenVerticalActuatorDist
+class MachineSetupState(State):
 
-class HomeState(State):
+    def __init__(self, parsedConfig: dict[str, dict[str, str]], stateMachine, *, parent=None):
+        super().__init__(parsedConfig, stateMachine, parent=parent)
+        self.readRelevantConfigVars(self._parsedConfig)
+        self._iterateTimer = QTimer(self)
+        self._iterateTimer.timeout.connect(self.iterate)
+        # TODO define how sensors are read
+
+    @property
+    def name(self):
+        return 'MachineSetup'
+
+    def readRelevantConfigVars(self, parsedConfig: dict[str, dict[str, str]]):
+        configFile = parsedConfig['CONFIG_FILE_NAME'] if 'CONFIG_FILE_NAME' in parsedConfig else 'config file'
+        if (self._configFileSectionName not in parsedConfig):
+            raise Exception(f"'{self._configFileSectionName}' section not found in {configFile}...")
+        try:
+            # TODO add any other configurable parameters here
+            self._plungerLimit = float(parsedConfig[self._configFileSectionName]['machinesetupscreenverticalactuatordistinches'])
+        except:
+            raise Exception(f"All required configurable parameters were not found under the '{self._configFileSectionName}' or 'DEFAULT' sections in {configFile}...")
+
+    def iterate(self):
+
+        self._exitCondition = True
+
+    def enter(self):
+        self._exitCondition = False
+        self._iterateTimer.start(round(1000.0/(1.0*self._iterateFreqHz)))
+        print(f'\nstate: {self.name}') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
+
+    def exit(self):
+        newStateName = 'SampleSetup'
+        if (not self._machine.setCurrentState(newStateName)): 
+            raise Exception(f"Could not change current state of state machine to state named '{newStateName}'...")
+        self._iterateTimer.stop()
+        print(f'{self.name} exiting...') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
+
+    def run(self):
+        
+        if (not self._iterateTimer.isActive()):
+            self.enter()
+
+        if (self._exitCondition):
+            self.exit()
+
+class SampleSetupState(State):
 
     # TODO: connect signals to gui in StateMachine.makeConnections() 
     plungerStatusChanged = pyqtSignal(bool)
@@ -95,6 +144,8 @@ class HomeState(State):
         self._plungerCheckPassed = False
         self._compressionDrawerCheckPassed = False
         self._filtrateDrawerCheckPassed = False
+        self._consumableRFID = self._nullInt
+        self._filtrateRFID = self._nullInt
         self.readRelevantConfigVars(self._parsedConfig)
         self._iterateTimer = QTimer(self)
         self._iterateTimer.timeout.connect(self.iterate)
@@ -102,7 +153,7 @@ class HomeState(State):
 
     @property
     def name(self):
-        return 'home'
+        return 'SampleSetup'
 
     def readRelevantConfigVars(self, parsedConfig: dict[str, dict[str, str]]):
         configFile = parsedConfig['CONFIG_FILE_NAME'] if 'CONFIG_FILE_NAME' in parsedConfig else 'config file'
@@ -110,9 +161,9 @@ class HomeState(State):
             raise Exception(f"'{self._configFileSectionName}' section not found in {configFile}...")
         try:
             # TODO add any other configurable parameters here
-            self._plungerLimit = int(parsedConfig[self._configFileSectionName]['homescreenplungerlimit'])
-            self._compressionDrawerLimit = int(parsedConfig[self._configFileSectionName]['homescreencompressiondrawerlimit'])
-            self._filtrateDrawerLimit = int(parsedConfig[self._configFileSectionName]['homescreenfiltratedrawerlimit'])
+            self._plungerLimit = int(parsedConfig[self._configFileSectionName]['samplesetupscreenplungerlimit'])
+            self._compressionDrawerLimit = int(parsedConfig[self._configFileSectionName]['samplesetupscreencompressiondrawerlimit'])
+            self._filtrateDrawerLimit = int(parsedConfig[self._configFileSectionName]['samplesetupscreenfiltratedrawerlimit'])
         except:
             raise Exception(f"All required configurable parameters were not found under the '{self._configFileSectionName}' or 'DEFAULT' sections in {configFile}...")
 
@@ -120,24 +171,36 @@ class HomeState(State):
     def iterate(self):
 
         # read plunger sensor (TODO update with actual sensor reading in if statement, left like this just for testing)
-        plungerSensorValue = 7
+        plungerSensorValue = 5
         if ((plungerSensorValue < self._plungerLimit) != self._plungerCheckPassed):
             self._plungerCheckPassed = (not self._plungerCheckPassed)
             self.plungerStatusChanged.emit(self._plungerCheckPassed)
 
         # read compression drawer sensor (TODO update with actual sensor reading in if statement, left like this just for testing)
-        compressionDrawerSensorValue = 8
-        if ((compressionDrawerSensorValue < self._compressionDrawerLimit) != self._filtrateDrawerCheckPassed):
-            self._filtrateDrawerCheckPassed = (not self._filtrateDrawerCheckPassed)
-            self.compressionDrawerStatusChanged.emit(self._filtrateDrawerCheckPassed)
+        compressionDrawerSensorValue = 6
+        if ((compressionDrawerSensorValue < self._compressionDrawerLimit) != self._compressionDrawerCheckPassed):
+            self._compressionDrawerCheckPassed = (not self._compressionDrawerCheckPassed)
+            self.compressionDrawerStatusChanged.emit(self._compressionDrawerCheckPassed)
 
         # read compression drawer sensor (TODO update with actual sensor reading in if statement, left like this just for testing)
-        compressionDrawerSensorValue = 9
-        if ((compressionDrawerSensorValue < self._filtrateDrawerLimit) != self._compressionDrawerCheckPassed):
-            self._compressionDrawerCheckPassed = (not self._compressionDrawerCheckPassed)
-            self.filtrateDrawerStatusChanged.emit(self._compressionDrawerCheckPassed)
+        filtrateDrawerSensorValue = 7
+        if ((filtrateDrawerSensorValue < self._filtrateDrawerLimit) != self._filtrateDrawerCheckPassed):
+            self._filtrateDrawerCheckPassed = (not self._filtrateDrawerCheckPassed)
+            self.filtrateDrawerStatusChanged.emit(self._filtrateDrawerCheckPassed)
 
-        if (self._plungerCheckPassed and self._compressionDrawerCheckPassed and self._filtrateDrawerCheckPassed):
+        # read consumable RFID (TODO update with actual RFID reading in if statement, left like this just for testing)
+        if (self._compressionDrawerCheckPassed):
+            self._consumableRFID = 8
+
+        # read consumable RFID (TODO update with actual RFID reading in if statement, left like this just for testing)
+        if (self._filtrateDrawerCheckPassed):
+            self._filtrateRFID = 9
+
+        allChecksPassed = (self._plungerCheckPassed and self._compressionDrawerCheckPassed and self._filtrateDrawerCheckPassed)
+        allRfIdsRead = (self._consumableRFID != self._nullInt and self._filtrateRFID != self._nullInt)
+
+        if (allChecksPassed and allRfIdsRead):
+            # TODO: lock trays and store sample weight
             self._exitCondition = True
 
     def enter(self):
@@ -145,14 +208,18 @@ class HomeState(State):
         self._plungerCheckPassed = False
         self._filtrateDrawerCheckPassed = False
         self._compressionDrawerCheckPassed = False
+        self._consumableRFID = self._nullInt
+        self._filtrateRFID = self._nullInt
         self.plungerStatusChanged.emit(self._plungerCheckPassed)
         self.compressionDrawerStatusChanged.emit(self._filtrateDrawerCheckPassed)
         self.filtrateDrawerStatusChanged.emit(self._compressionDrawerCheckPassed)
         self._iterateTimer.start(round(1000.0/(1.0*self._iterateFreqHz)))
-        print(f'state: {self.name}') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
+        print(f'\nstate: {self.name}') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
 
     def exit(self):
-        self._machine.setCurrentState('welcome') # TODO update once other states defined
+        newStateName = 'Compression'
+        if (not self._machine.setCurrentState(newStateName)): 
+            raise Exception(f"Could not change current state of state machine to state named '{newStateName}'...")
         self._iterateTimer.stop()
         print(f'{self.name} exiting...') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
 
@@ -163,3 +230,62 @@ class HomeState(State):
 
         if (self._exitCondition):
             self.exit()
+
+
+class CompressionState(State):
+
+    goButtonPressedEvent = pyqtSignal()
+
+    def __init__(self, parsedConfig: dict[str, dict[str, str]], stateMachine, *, parent=None):
+        super().__init__(parsedConfig, stateMachine, parent=parent)
+        self._goButtonPressed = False
+        self.readRelevantConfigVars(self._parsedConfig)
+        self._iterateTimer = QTimer(self)
+        self._iterateTimer.timeout.connect(self.iterate)
+        # TODO define how sensors are read
+
+    @property
+    def name(self):
+        return 'Compression'
+
+    def readRelevantConfigVars(self, parsedConfig: dict[str, dict[str, str]]):
+        configFile = parsedConfig['CONFIG_FILE_NAME'] if 'CONFIG_FILE_NAME' in parsedConfig else 'config file'
+        if (self._configFileSectionName not in parsedConfig):
+            raise Exception(f"'{self._configFileSectionName}' section not found in {configFile}...")
+        try:
+            # TODO add any other configurable parameters here
+            self._currentLimit = int(parsedConfig[self._configFileSectionName]['compressionscreencurrentlimit'])
+            self._dwellDurationSec = float(parsedConfig[self._configFileSectionName]['compressionscreendwelldurationsec'])
+        except:
+            raise Exception(f"All required configurable parameters were not found under the '{self._configFileSectionName}' or 'DEFAULT' sections in {configFile}...")
+
+    def iterate(self):
+
+        # TODO: check if go button pressed
+        if (self._goButtonPressed):
+            self.goButtonPressedEvent.emit()
+
+        # TODO define rest of state (and probably do goButtonStatusChanged for signal instead)
+        self._exitCondition = True
+
+    def enter(self):
+        self._exitCondition = False
+        self._goButtonPressed = False
+        self._iterateTimer.start(round(1000.0/(1.0*self._iterateFreqHz)))
+        print(f'\nstate: {self.name}') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
+
+    def exit(self):
+        newStateName = 'Welcome'
+        if (not self._machine.setCurrentState(newStateName)): 
+            raise Exception(f"Could not change current state of state machine to state named '{newStateName}'...")
+        self._iterateTimer.stop()
+        print(f'{self.name} exiting...') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
+
+    def run(self):
+        
+        if (not self._iterateTimer.isActive()):
+            self.enter()
+
+        if (self._exitCondition):
+            self.exit()
+

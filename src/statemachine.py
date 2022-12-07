@@ -14,7 +14,7 @@ class StateMachine(QObject):
 
     stateChangedSignal = pyqtSignal(str)
 
-    _firstStateName = 'welcome' # TODO change
+    _firstStateName = 'Welcome' # TODO change
     _configFileSectionName = 'StateMachine'
     
     def __init__(self, parsedConfig: dict[str, dict[str, str]], gui, *, parent=None):
@@ -45,8 +45,9 @@ class StateMachine(QObject):
     def constructStates(self, parsedConfig: dict[str, dict[str, str]]) -> tuple[States.State]:
         allStates = list()
         allStates.append(States.WelcomeState(parsedConfig=parsedConfig, stateMachine=self, parent=self))
-        allStates.append(States.HomeState(parsedConfig=parsedConfig, stateMachine=self, parent=self))
-        # TODO: add all states
+        allStates.append(States.MachineSetupState(parsedConfig=parsedConfig, stateMachine=self, parent=self))
+        allStates.append(States.SampleSetupState(parsedConfig=parsedConfig, stateMachine=self, parent=self))
+        allStates.append(States.CompressionState(parsedConfig=parsedConfig, stateMachine=self, parent=self))
         return tuple(allStates)
 
     def defineStateDict(self, allStates: tuple[States.State]) -> dict[str, States.State]:
