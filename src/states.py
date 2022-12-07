@@ -84,11 +84,16 @@ class WelcomeState(State):
         if (self._exitCondition):
             self.exit()        
 
-# MachineSetupScreenVerticalActuatorDist
+
 class MachineSetupState(State):
+
+    deviceHomedStatusChanged = pyqtSignal(bool)
+    loadCellsTaredStatusChanged = pyqtSignal(bool)
 
     def __init__(self, parsedConfig: dict[str, dict[str, str]], stateMachine, *, parent=None):
         super().__init__(parsedConfig, stateMachine, parent=parent)
+        self._deviceHomed = False
+        self._loadCellsTared = False
         self.readRelevantConfigVars(self._parsedConfig)
         self._iterateTimer = QTimer(self)
         self._iterateTimer.timeout.connect(self.iterate)
@@ -104,16 +109,38 @@ class MachineSetupState(State):
             raise Exception(f"'{self._configFileSectionName}' section not found in {configFile}...")
         try:
             # TODO add any other configurable parameters here
-            self._plungerLimit = float(parsedConfig[self._configFileSectionName]['machinesetupscreenverticalactuatordistinches'])
+            self._actuatorVerticalDist = float(parsedConfig[self._configFileSectionName]['machinesetupscreenverticalactuatordistinches'])
         except:
             raise Exception(f"All required configurable parameters were not found under the '{self._configFileSectionName}' or 'DEFAULT' sections in {configFile}...")
 
     def iterate(self):
 
-        self._exitCondition = True
+        # TODO read device homed
+        deviceHomed = True
+        if (deviceHomed != self._deviceHomed):
+            self._deviceHomed = (not self._deviceHomed)
+            self.deviceHomedStatusChanged.emit(self._deviceHomed)
+
+        if (not self._deviceHomed):
+            return
+
+        # TODO potentially emit second signal to prompt user to "take everything out"
+        # TODO tare load cells
+        self._loadCellsTared = True
+
+        # TODO move actuator up and down an measure calibration current
+        self._calibrationCurrentMeasured = True
+
+        if (self._loadCellsTared and self._calibrationCurrentMeasured):
+            self._exitCondition = True
 
     def enter(self):
         self._exitCondition = False
+        self._deviceHomed = False
+        self._loadCellsTared = False
+        self._calibrationCurrentMeasured = False
+        self.deviceHomedStatusChanged.emit(self._deviceHomed)
+        self.loadCellsTaredStatusChanged.emit(self._loadCellsTared)
         self._iterateTimer.start(round(1000.0/(1.0*self._iterateFreqHz)))
         print(f'\nstate: {self.name}') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
 
@@ -131,6 +158,7 @@ class MachineSetupState(State):
 
         if (self._exitCondition):
             self.exit()
+
 
 class SampleSetupState(State):
 
