@@ -94,6 +94,7 @@ class MachineSetupState(State):
         super().__init__(parsedConfig, stateMachine, parent=parent)
         self._deviceHomed = False
         self._loadCellsTared = False
+        self._calibrationCurrentMeasured = False
         self.readRelevantConfigVars(self._parsedConfig)
         self._iterateTimer = QTimer(self)
         self._iterateTimer.timeout.connect(self.iterate)
