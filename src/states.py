@@ -164,21 +164,43 @@ class MachineSetupState(State):
 class SampleSetupState(State):
 
     # TODO: connect signals to gui in StateMachine.makeConnections() 
-    plungerStatusChanged = pyqtSignal(bool)
-    compressionDrawerStatusChanged = pyqtSignal(bool)
-    filtrateDrawerStatusChanged = pyqtSignal(bool)
+    plungerStatusChanged = pyqtSignal(str, bool)
+    compressionDrawerStatusChanged = pyqtSignal(str, bool)
+    filtrateDrawerStatusChanged = pyqtSignal(str, bool)
+    rfidStatusChanged = pyqtSignal(str, bool)
 
     def __init__(self, parsedConfig: dict[str, dict[str, str]], stateMachine, *, parent=None):
         super().__init__(parsedConfig, stateMachine, parent=parent)
         self._plungerCheckPassed = False
         self._compressionDrawerCheckPassed = False
         self._filtrateDrawerCheckPassed = False
+        self._rfidChecksPassed = False
         self._consumableRFID = self._nullInt
         self._filtrateRFID = self._nullInt
         self.readRelevantConfigVars(self._parsedConfig)
         self._iterateTimer = QTimer(self)
         self._iterateTimer.timeout.connect(self.iterate)
         # TODO define how sensors are read
+
+        # TODO remove below, just for testing slots in GUI
+        self.testPlungerVal = 5000000
+        self.testCompressionDrawerVal = 6000000
+        self.testFiltrateDrawerVal = 7000000
+        QTimer.singleShot(6000, lambda: self.testConditions1())
+        QTimer.singleShot(8000, lambda: self.testConditions2())
+        QTimer.singleShot(10000, lambda: self.testConditions3())
+
+    # TODO remove, just for testing slots in GUI
+    def testConditions1(self):
+        self.testPlungerVal = 5
+
+    # TODO remove, just for testing slots in GUI
+    def testConditions2(self):
+        self.testCompressionDrawerVal = 6
+
+    # TODO remove, just for testing slots in GUI
+    def testConditions3(self):
+        self.testFiltrateDrawerVal = 6
 
     @property
     def name(self):
@@ -200,22 +222,24 @@ class SampleSetupState(State):
     def iterate(self):
 
         # read plunger sensor (TODO update with actual sensor reading in if statement, left like this just for testing)
-        plungerSensorValue = 5
+        plungerSensorValue = self.testPlungerVal
         if ((plungerSensorValue < self._plungerLimit) != self._plungerCheckPassed):
             self._plungerCheckPassed = (not self._plungerCheckPassed)
-            self.plungerStatusChanged.emit(self._plungerCheckPassed)
+            self.plungerStatusChanged.emit("plunger", self._plungerCheckPassed)
 
         # read compression drawer sensor (TODO update with actual sensor reading in if statement, left like this just for testing)
-        compressionDrawerSensorValue = 6
+        compressionDrawerSensorValue = self.testCompressionDrawerVal
         if ((compressionDrawerSensorValue < self._compressionDrawerLimit) != self._compressionDrawerCheckPassed):
             self._compressionDrawerCheckPassed = (not self._compressionDrawerCheckPassed)
-            self.compressionDrawerStatusChanged.emit(self._compressionDrawerCheckPassed)
+            self.compressionDrawerStatusChanged.emit("compressionDrawer", self._compressionDrawerCheckPassed)
 
         # read compression drawer sensor (TODO update with actual sensor reading in if statement, left like this just for testing)
-        filtrateDrawerSensorValue = 7
+        filtrateDrawerSensorValue = self.testFiltrateDrawerVal
         if ((filtrateDrawerSensorValue < self._filtrateDrawerLimit) != self._filtrateDrawerCheckPassed):
             self._filtrateDrawerCheckPassed = (not self._filtrateDrawerCheckPassed)
-            self.filtrateDrawerStatusChanged.emit(self._filtrateDrawerCheckPassed)
+            self.filtrateDrawerStatusChanged.emit("filtrateDrawer", self._filtrateDrawerCheckPassed)
+
+        allChecksPassed = (self._plungerCheckPassed and self._compressionDrawerCheckPassed and self._filtrateDrawerCheckPassed)
 
         # read consumable RFID (TODO update with actual RFID reading in if statement, left like this just for testing)
         if (self._compressionDrawerCheckPassed):
@@ -225,8 +249,10 @@ class SampleSetupState(State):
         if (self._filtrateDrawerCheckPassed):
             self._filtrateRFID = 9
 
-        allChecksPassed = (self._plungerCheckPassed and self._compressionDrawerCheckPassed and self._filtrateDrawerCheckPassed)
         allRfIdsRead = (self._consumableRFID != self._nullInt and self._filtrateRFID != self._nullInt)
+        if (allRfIdsRead != self._rfidChecksPassed):
+            self._rfidChecksPassed = (not self._rfidChecksPassed)
+            self.rfidStatusChanged.emit("rfids", self._rfidChecksPassed)
 
         if (allChecksPassed and allRfIdsRead):
             # TODO: lock trays and store sample weight
@@ -237,11 +263,13 @@ class SampleSetupState(State):
         self._plungerCheckPassed = False
         self._filtrateDrawerCheckPassed = False
         self._compressionDrawerCheckPassed = False
+        self._rfidChecksPassed = False
         self._consumableRFID = self._nullInt
         self._filtrateRFID = self._nullInt
-        self.plungerStatusChanged.emit(self._plungerCheckPassed)
-        self.compressionDrawerStatusChanged.emit(self._filtrateDrawerCheckPassed)
-        self.filtrateDrawerStatusChanged.emit(self._compressionDrawerCheckPassed)
+        self.plungerStatusChanged.emit("plunger", self._plungerCheckPassed)
+        self.compressionDrawerStatusChanged.emit("compressionDrawer", self._filtrateDrawerCheckPassed)
+        self.filtrateDrawerStatusChanged.emit("filtrateDrawer", self._compressionDrawerCheckPassed)
+        self.rfidStatusChanged.emit("rfids", self._rfidChecksPassed)
         self._iterateTimer.start(round(1000.0/(1.0*self._iterateFreqHz)))
         print(f'\nstate: {self.name}') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
 

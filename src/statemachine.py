@@ -12,7 +12,7 @@ from PyQt5.QtCore import QTimer, QObject, pyqtSignal, pyqtSlot
 
 class StateMachine(QObject):
 
-    stateChangedSignal = pyqtSignal(str)
+    stateChangedSignal = pyqtSignal(str, str)
 
     _firstStateName = 'Welcome' # TODO change
     _configFileSectionName = 'StateMachine'
@@ -41,7 +41,6 @@ class StateMachine(QObject):
         except:
             raise Exception(f"All required configurable parameters were not found under the '{self._configFileSectionName}' or 'DEFAULT' sections in {configFile}...")
 
-
     def constructStates(self, parsedConfig: dict[str, dict[str, str]]) -> tuple[States.State]:
         allStates = list()
         allStates.append(States.WelcomeState(parsedConfig=parsedConfig, stateMachine=self, parent=self))
@@ -56,6 +55,11 @@ class StateMachine(QObject):
     # make all signal/slot connections
     def makeConnections(self):
         self._iterateTimer.timeout.connect(self.iterate)
+        self._states['SampleSetup'].plungerStatusChanged.connect(self._gui.sampleSetupStatusChanged)
+        self._states['SampleSetup'].compressionDrawerStatusChanged.connect(self._gui.sampleSetupStatusChanged)
+        self._states['SampleSetup'].filtrateDrawerStatusChanged.connect(self._gui.sampleSetupStatusChanged)
+        self._states['SampleSetup'].rfidStatusChanged.connect(self._gui.sampleSetupStatusChanged)
+
         # make all relevant connections between states and GUI
         # make all relevant connections between states and self
         # make all relevant connections between states and interrupt handler
@@ -76,7 +80,7 @@ class StateMachine(QObject):
     def iterate(self):
         self.currState.run()
         if (self.currState.name != self.prevStateName):
-            self.stateChangedSignal.emit(self.currState.name)
+            self.stateChangedSignal.emit(self.currState.name, self.prevStateName)
             self.prevStateName = self.currState.name
 
     # only QMainWindow catches closeEvents, so connect signal from GUI(QMainWindow) to alert StateMachine for proper cleanup

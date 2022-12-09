@@ -1,5 +1,5 @@
 import sys
-# from GUIDefinition import GUIComponents, GUITransitions
+from uglyGuiDefinition import GUIComponents, GUITransitions
 from statemachine import StateMachine
 from configparser import ConfigParser
 from PyQt5.QtCore import QTimer, QThread, pyqtSignal, pyqtSlot
@@ -16,8 +16,8 @@ class GUI(QMainWindow):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        # self.guiComponents = GUIComponents(self)
-        # self.guiTransitions = GUITransitions(self)
+        self._guiComponents = GUIComponents(self)
+        self._guiTransitions = GUITransitions(self, self._guiComponents)
         self._parsedConfig = self.parseConfig()
 
         self._otherThreads = self.constructThreads(self._additionalThreads)
@@ -38,9 +38,26 @@ class GUI(QMainWindow):
         return parsedConfig
 
     def setupConnections(self):
-        # TODO
         for thread in self._otherThreads.values():
             self.aboutToQuit.connect(thread.quit)
+        self._machine.stateChangedSignal.connect(self.machineStateChanged)
+
+    @pyqtSlot(str, str)
+    def machineStateChanged(self, newStateName: str, oldStateName: str):
+        print(f"NEWSTATE: {newStateName}, OLDSTATE: {oldStateName}") # TODO remove
+        self._guiTransitions.swapPages(newStateName, oldStateName)
+
+    @pyqtSlot(str, bool)
+    def sampleSetupStatusChanged(self, sensorChecked: str, newCheckVal: bool):
+        newStyle = "border-radius: 10px;\nbackground-color: " + ("green;" if newCheckVal else "red;")
+        if (sensorChecked == "plunger"):
+            self._guiComponents.img_1_frame.setStyleSheet(newStyle)
+        elif (sensorChecked == "compressionDrawer"):
+            self._guiComponents.img_2_frame.setStyleSheet(newStyle)
+        elif (sensorChecked == "filtrateDrawer"):
+            self._guiComponents.img_3_frame.setStyleSheet(newStyle)
+        elif (sensorChecked == "rfids"):
+            self._guiComponents.img_4_frame.setStyleSheet(newStyle)
 
     def constructThreads(self, newThreadNames: tuple[str]) -> dict[str, QThread]:
         return {threadName: QThread() for threadName in newThreadNames}
