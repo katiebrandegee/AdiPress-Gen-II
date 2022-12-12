@@ -10,7 +10,7 @@ import pymongo
 import socket
 import datetime
 import sched
-
+from mfrc522 import SimpleMFRC522
 
 class State(QObject):
 
@@ -194,16 +194,16 @@ class SampleSetupState(State):
         self._iterateTimer.timeout.connect(self.iterate)
         # TODO define how sensors are read
         # self.plungerSensor, self.compressionDrawerSensor, self.filtrateDrawerSensor, self.nfc = self.setupSampleSetupSensors()
-        self.plungerSensor, self.compressionDrawerSensor, self.filtrateDrawerSensor = self.setupSampleSetupSensors()
+        self.plungerSensor, self.compressionDrawerSensor, self.filtrateDrawerSensor, self.consumableRFID = self.setupSampleSetupSensors()
         
 
-        # TODO remove below, just for testing slots in GUI
-        self.testPlungerVal = 5000000
-        self.testCompressionDrawerVal = 6000000
-        self.testFiltrateDrawerVal = 7000000
-        QTimer.singleShot(6000, lambda: self.testConditions1())
-        QTimer.singleShot(8000, lambda: self.testConditions2())
-        QTimer.singleShot(10000, lambda: self.testConditions3())
+#         # TODO remove below, just for testing slots in GUI
+#         self.testPlungerVal = 5000000
+#         self.testCompressionDrawerVal = 6000000
+#         self.testFiltrateDrawerVal = 7000000
+#         QTimer.singleShot(6000, lambda: self.testConditions1())
+#         QTimer.singleShot(8000, lambda: self.testConditions2())
+#         QTimer.singleShot(10000, lambda: self.testConditions3())
 
     def setupSampleSetupSensors(self):
         i2c = busio.I2C(board.SCL, board.SDA)
@@ -215,11 +215,14 @@ class SampleSetupState(State):
         #RFID
         GPIO.setup(self._consumableRFID_RST, GPIO.OUT)
         GPIO.setup(self._filtrateRFID_RST, GPIO.OUT)
-        nfc = RFID.NFC()
-        nfc.addBoard("consumableRFID",self._consumableRFID_RST)
-        nfc.addBoard("filtrateRFID",self._filtrateRFID_RST)
+        
+        consumableRFID = SimpleMFRC522()
+        
+#         nfc = RFID.NFC()
+#         nfc.addBoard("consumableRFID",self._consumableRFID_RST)
+#         nfc.addBoard("filtrateRFID",self._filtrateRFID_RST)
 
-        return plungerSensor, compressionDrawerSensor, filtrateDrawerSensor
+        return plungerSensor, compressionDrawerSensor, filtrateDrawerSensor, consumableRFID
 
     @property
     def name(self):
@@ -249,37 +252,50 @@ class SampleSetupState(State):
 
         # read plunger sensor (TODO update with actual sensor reading in if statement, left like this just for testing)
         plungerSensorValue = self.plungerSensor.value
-        if ((plungerSensorValue < self._plungerLimit) != self._plungerCheckPassed):
+        print('Plunger Val:', plungerSensorValue)
+        if ((plungerSensorValue > self._plungerLimit) != self._plungerCheckPassed):
             self._plungerCheckPassed = (not self._plungerCheckPassed)
             self.plungerStatusChanged.emit("plunger", self._plungerCheckPassed)
 
         # read compression drawer sensor (TODO update with actual sensor reading in if statement, left like this just for testing)
         compressionDrawerSensorValue = self.compressionDrawerSensor.value
-        if ((compressionDrawerSensorValue < self._compressionDrawerLimit) != self._compressionDrawerCheckPassed):
+        print('Compression Val:', compressionDrawerSensorValue)
+        if ((compressionDrawerSensorValue > self._compressionDrawerLimit) != self._compressionDrawerCheckPassed):
             self._compressionDrawerCheckPassed = (not self._compressionDrawerCheckPassed)
             self.compressionDrawerStatusChanged.emit("compressionDrawer", self._compressionDrawerCheckPassed)
+            print('ddd')
 
         # read compression drawer sensor (TODO update with actual sensor reading in if statement, left like this just for testing)
-        filtrateDrawerSensorValue = self.compressionDrawerSensor.value
+        # line below is just for testing: get rid once 3rd HES is working
+        
+#         filtrateDrawerSensorValue = self.compressionDrawerSensor.value
+        filtrateDrawerSensorValue = 100
         if ((filtrateDrawerSensorValue < self._filtrateDrawerLimit) != self._filtrateDrawerCheckPassed):
+            print('eee')
             self._filtrateDrawerCheckPassed = (not self._filtrateDrawerCheckPassed)
             self.filtrateDrawerStatusChanged.emit("filtrateDrawer", self._filtrateDrawerCheckPassed)
 
         allChecksPassed = (self._plungerCheckPassed and self._compressionDrawerCheckPassed and self._filtrateDrawerCheckPassed)
-
+        ('wer')
         # read consumable RFID (TODO update with actual RFID reading in if statement, left like this just for testing)
+        # Below is commented out while RFIDS arent working 
         if (self._compressionDrawerCheckPassed):
-            self._consumableRFID = self.nfc.read("consumableRFID")
+            
+            self._consumableRFID = self.consumableRFID.read()
 
         # read consumable RFID (TODO update with actual RFID reading in if statement, left like this just for testing)
         if (self._filtrateDrawerCheckPassed):
-            self._filtrateRFID = self.nfc.read("filtateRFID")
+            self._filtrateRFID = 22222222
+#             self._filtrateRFID = self.nfc.read("filtateRFID")
         # make sure that nullInt is representative of what you get when theres no card
         allRfIdsRead = (self._consumableRFID != self._nullInt and self._filtrateRFID != self._nullInt)
+
         if (allRfIdsRead != self._rfidChecksPassed):
+        
             self._rfidChecksPassed = (not self._rfidChecksPassed)
             self.rfidStatusChanged.emit("rfids", self._rfidChecksPassed)
 
+        
         if (allChecksPassed and allRfIdsRead):
             # TODO: lock trays and store sample weight
             self._exitCondition = True
@@ -339,7 +355,8 @@ class CompressionState(State):
     def name(self):
         return 'Compression'
     
-    def buttonPressed(self):
+    
+    def buttonPressed(self, channel):
         if (not self._goButtonPressed):
             self._goButtonPressed = True
             self.goButtonPressedEvent.emit()
@@ -354,7 +371,7 @@ class CompressionState(State):
         GPIO.output(self._UP_EN, GPIO.HIGH)
         GPIO.output(self._DOWN_EN, GPIO.HIGH)
         GPIO.setup(self._goButtonPin, GPIO.IN)
-        GPIO.add_event_detect(self._goButtonPin, GPIO.FALLING, callback = self.buttonPressed, bouncetime = 75)
+        GPIO.add_event_detect(self._goButtonPin, GPIO.FALLING, callback = self.buttonPressed, bouncetime = 75) # -----------------------------------------------
 
 
         # set these better later
@@ -394,7 +411,7 @@ class CompressionState(State):
             self._consumableGain = int(parsedConfig[self._configFileSectionName]['consumablegain']) 
             self._filtrateGain = int(parsedConfig[self._configFileSectionName]['filtrategain']) 
             self._goButtonPin = int(parsedConfig[self._configFileSectionName]['gobutton']) 
-
+            x = 3
         except:
             raise Exception(f"All required configurable parameters were not found under the '{self._configFileSectionName}' or 'DEFAULT' sections in {configFile}...")
 

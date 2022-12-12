@@ -56,6 +56,7 @@ class GUI(QMainWindow):
         
     @pyqtSlot(str, bool)
     def sampleSetupStatusChanged(self, sensorChecked: str, newCheckVal: bool):
+        print(sensorChecked)
         newStyle = "border-radius: 10px;\nbackground-color: " + ("green;" if newCheckVal else "red;")
         if (sensorChecked == "plunger"):
             self._guiComponents.img_1_frame.setStyleSheet(newStyle)
