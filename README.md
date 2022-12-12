@@ -6,7 +6,7 @@ AdiPress Gen II Code
 
 ## Dependencies
 
-1. Python3 (TODO confirm required version (>=3.6?))
+1. Python3 (TODO confirm required version (>=3.9?))
 2. PyQt5
 
 ## Instructions

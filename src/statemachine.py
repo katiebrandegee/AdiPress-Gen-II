@@ -59,6 +59,7 @@ class StateMachine(QObject):
         self._states['SampleSetup'].compressionDrawerStatusChanged.connect(self._gui.sampleSetupStatusChanged)
         self._states['SampleSetup'].filtrateDrawerStatusChanged.connect(self._gui.sampleSetupStatusChanged)
         self._states['SampleSetup'].rfidStatusChanged.connect(self._gui.sampleSetupStatusChanged)
+        self._states['Compression'].goButtonPressedEvent.connect(self._gui.compressionStarted)
 
         # make all relevant connections between states and GUI
         # make all relevant connections between states and self

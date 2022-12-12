@@ -342,9 +342,6 @@ class CompressionState(State):
             self._goButtonPressed = True
             self.goButtonPressedEvent.emit()
 
-
-        
-
     def setupCompressionSensors(self):
         # Actuator Setup
         GPIO.setup(self._UP_PWM, GPIO.OUT)
@@ -374,10 +371,7 @@ class CompressionState(State):
         loadCell1 = HX711(dout_pin=21, pd_sck_pin=18, channel='A', gain = gain1)
         loadCell2 = HX711(dout_pin=19, pd_sck_pin=26, channel='A', gain = gain2)
 
-
         return pwmDown, pwmUp, currentSensor
-
-
 
     def readRelevantConfigVars(self, parsedConfig: dict[str, dict[str, str]]):
         configFile = parsedConfig['CONFIG_FILE_NAME'] if 'CONFIG_FILE_NAME' in parsedConfig else 'config file'
@@ -403,9 +397,6 @@ class CompressionState(State):
 
     def iterate(self):
         
-        # TODO: check if go button pressed
-        # check what current sensor reads when nothing is moving
-        # chekc to see if loop executes fast enough for polling go Buttun instead of interrupt
         if (self._goButtonPressed and not self._compressionLimitReached):
             if (not self._startedCompression):
                 self._startedCompression = True
@@ -422,7 +413,6 @@ class CompressionState(State):
             if (not GPIO.input(self._homePin)):
                 self.pwmUp.stop()
                 self._exitCondition = True
-
 
     def dwellElapsed(self):
         self._dwellDone = True

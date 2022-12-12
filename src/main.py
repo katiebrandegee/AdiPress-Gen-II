@@ -47,6 +47,13 @@ class GUI(QMainWindow):
         print(f"NEWSTATE: {newStateName}, OLDSTATE: {oldStateName}") # TODO remove
         self._guiTransitions.swapPages(newStateName, oldStateName)
 
+    @pyqtSlot()
+    def compressionStarted(self):
+        oldStateName = "Compression"
+        newStateName = "Compression2"
+        print(f"NEWSTATE: {newStateName}, OLDSTATE: {oldStateName}") # TODO remove
+        self._guiTransitions.swapPages(newStateName, oldStateName)
+        
     @pyqtSlot(str, bool)
     def sampleSetupStatusChanged(self, sensorChecked: str, newCheckVal: bool):
         newStyle = "border-radius: 10px;\nbackground-color: " + ("green;" if newCheckVal else "red;")
