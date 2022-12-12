@@ -193,7 +193,9 @@ class SampleSetupState(State):
         self._iterateTimer = QTimer(self)
         self._iterateTimer.timeout.connect(self.iterate)
         # TODO define how sensors are read
-        self.plungerSensor, self.compressionDrawerSensor, self.filtrateDrawerSensor, self.nfc = self.setupSampleSetupSensors()
+        # self.plungerSensor, self.compressionDrawerSensor, self.filtrateDrawerSensor, self.nfc = self.setupSampleSetupSensors()
+        self.plungerSensor, self.compressionDrawerSensor, self.filtrateDrawerSensor = self.setupSampleSetupSensors()
+        
 
         # TODO remove below, just for testing slots in GUI
         self.testPlungerVal = 5000000
@@ -230,7 +232,7 @@ class SampleSetupState(State):
         try:
 
             # TODO add any other configurable parameters here
-            self._plungerimit = int(parsedConfig[self._configFileSectionName]['plungersensorlim'])
+            self._plungerLimit = int(parsedConfig[self._configFileSectionName]['plungersensorlim'])
             self._compressionDrawerLimit = int(parsedConfig[self._configFileSectionName]['compressiondrawerlim'])
             self._filtrateDrawerLimit = int(parsedConfig[self._configFileSectionName]['filtratedrawerlimit'])
             self._consumableRFID_RST = int(parsedConfig[self._configFileSectionName]['consumablerfid_rst'])
@@ -351,7 +353,7 @@ class CompressionState(State):
 
         GPIO.output(self._UP_EN, GPIO.HIGH)
         GPIO.output(self._DOWN_EN, GPIO.HIGH)
-        GPIO.input(self._encoder, GPIO.IN)
+        GPIO.setup(self._goButtonPin, GPIO.IN)
         GPIO.add_event_detect(self._goButtonPin, GPIO.FALLING, callback = self.buttonPressed, bouncetime = 75)
 
 
@@ -368,8 +370,8 @@ class CompressionState(State):
         currentSensor = AnalogIn(ads3V, ADS.P0)
 
         # Load Cells
-        loadCell1 = HX711(dout_pin=21, pd_sck_pin=18, channel='A', gain = gain1)
-        loadCell2 = HX711(dout_pin=19, pd_sck_pin=26, channel='A', gain = gain2)
+        consumableLC = HX711(dout_pin=21, pd_sck_pin=18, channel='A', gain = self._consumableGain)
+        filtrateLC = HX711(dout_pin=19, pd_sck_pin=26, channel='A', gain = self._filtrateGain)
 
         return pwmDown, pwmUp, currentSensor
 
@@ -379,12 +381,13 @@ class CompressionState(State):
             raise Exception(f"'{self._configFileSectionName}' section not found in {configFile}...")
         try:
             # TODO add any other configurable parameters here
-            self._currentLimit = int(parsedConfig[self._configFileSectionName]['compressionscreencurrentlimit'])
+            self._currentLimit = int(parsedConfig[self._configFileSectionName]['currentsensorlim'])
             self._dwellDurationSec = float(parsedConfig[self._configFileSectionName]['compressionscreendwelldurationsec'])
             self._UP_PWM = int(parsedConfig[self._configFileSectionName]['up_pwm'])
             self._DOWN_PWM = int(parsedConfig[self._configFileSectionName]['down_pwm'])
             self._UP_EN = int(parsedConfig[self._configFileSectionName]['up_en'])
             self._DOWN_EN = int(parsedConfig[self._configFileSectionName]['down_en'])
+            
             self._endPin = int(parsedConfig[self._configFileSectionName]['endpin'])
             self._homePin = int(parsedConfig[self._configFileSectionName]['homepin'])
             self._encoder = int(parsedConfig[self._configFileSectionName]['encoder']) 
