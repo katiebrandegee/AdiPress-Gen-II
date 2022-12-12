@@ -274,15 +274,14 @@ class SampleSetupState(State):
             print('eee')
             self._filtrateDrawerCheckPassed = (not self._filtrateDrawerCheckPassed)
             self.filtrateDrawerStatusChanged.emit("filtrateDrawer", self._filtrateDrawerCheckPassed)
-
+    
         allChecksPassed = (self._plungerCheckPassed and self._compressionDrawerCheckPassed and self._filtrateDrawerCheckPassed)
-        ('wer')
         # read consumable RFID (TODO update with actual RFID reading in if statement, left like this just for testing)
         # Below is commented out while RFIDS arent working 
         if (self._compressionDrawerCheckPassed):
             
             self._consumableRFID = self.consumableRFID.read()
-
+        print('dsfsdfsdf')
         # read consumable RFID (TODO update with actual RFID reading in if statement, left like this just for testing)
         if (self._filtrateDrawerCheckPassed):
             self._filtrateRFID = 22222222
@@ -411,7 +410,6 @@ class CompressionState(State):
             self._consumableGain = int(parsedConfig[self._configFileSectionName]['consumablegain']) 
             self._filtrateGain = int(parsedConfig[self._configFileSectionName]['filtrategain']) 
             self._goButtonPin = int(parsedConfig[self._configFileSectionName]['gobutton']) 
-            x = 3
         except:
             raise Exception(f"All required configurable parameters were not found under the '{self._configFileSectionName}' or 'DEFAULT' sections in {configFile}...")
 
