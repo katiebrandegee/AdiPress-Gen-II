@@ -6,7 +6,6 @@ import adafruit_ads1x15.ads1115 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
 from hx711 import HX711
 import RFID
-import config 
 import pymongo
 import socket
 import datetime
@@ -220,19 +219,6 @@ class SampleSetupState(State):
 
         return plungerSensor, compressionDrawerSensor, filtrateDrawerSensor
 
-
-    # TODO remove, just for testing slots in GUI
-    def testConditions1(self):
-        self.testPlungerVal = 5
-
-    # TODO remove, just for testing slots in GUI
-    def testConditions2(self):
-        self.testCompressionDrawerVal = 6
-
-    # TODO remove, just for testing slots in GUI
-    def testConditions3(self):
-        self.testFiltrateDrawerVal = 6
-
     @property
     def name(self):
         return 'SampleSetup'
@@ -335,17 +321,29 @@ class CompressionState(State):
     def __init__(self, parsedConfig: dict[str, dict[str, str]], stateMachine, *, parent=None):
         super().__init__(parsedConfig, stateMachine, parent=parent)
         self._goButtonPressed = False
-        self._goButtonPressedFlag = False
         self._compressionLimitReached = False
+        self._startedCompression = False
+        self._startedUpMovement = False
         self.readRelevantConfigVars(self._parsedConfig)
         self._iterateTimer = QTimer(self)
+        self._dwellTimer = QTimer(self)
+        self._dwellDone = False
         self._iterateTimer.timeout.connect(self.iterate)
+        self._dwellTimer.timeout.connect(self.dwellElapsed)
         self.pwmDown, self.pwmUp, self.currentSensor = self.setupCompressionSensors()
         # TODO define how sensors are read
 
     @property
     def name(self):
         return 'Compression'
+    
+    def buttonPressed(self):
+        if (not self._goButtonPressed):
+            self._goButtonPressed = True
+            self.goButtonPressedEvent.emit()
+
+
+        
 
     def setupCompressionSensors(self):
         # Actuator Setup
@@ -356,6 +354,9 @@ class CompressionState(State):
 
         GPIO.output(self._UP_EN, GPIO.HIGH)
         GPIO.output(self._DOWN_EN, GPIO.HIGH)
+        GPIO.input(self._encoder, GPIO.IN)
+        GPIO.add_event_detect(self._goButtonPin, GPIO.FALLING, callback = self.buttonPressed, bouncetime = 75)
+
 
         # set these better later
         pwmUp = GPIO.PWM(self._UP_PWM, 50)
@@ -395,6 +396,7 @@ class CompressionState(State):
             self._encoder = int(parsedConfig[self._configFileSectionName]['encoder']) 
             self._consumableGain = int(parsedConfig[self._configFileSectionName]['consumablegain']) 
             self._filtrateGain = int(parsedConfig[self._configFileSectionName]['filtrategain']) 
+            self._goButtonPin = int(parsedConfig[self._configFileSectionName]['gobutton']) 
 
         except:
             raise Exception(f"All required configurable parameters were not found under the '{self._configFileSectionName}' or 'DEFAULT' sections in {configFile}...")
@@ -405,23 +407,40 @@ class CompressionState(State):
         # check what current sensor reads when nothing is moving
         # chekc to see if loop executes fast enough for polling go Buttun instead of interrupt
         if (self._goButtonPressed and not self._compressionLimitReached):
-            self._goButtonPressedFlag = True
-            if (not self._goButtonPressedFlag):
-                self.goButtonPressedEvent.emit()
+            if (not self._startedCompression):
+                self._startedCompression = True
+                self.pwmDown.start(100)
+            if (self.currentSensor.value > self._currentLimit or not GPIO.input(self._endPin)):
+                self.pwmDown.stop()
+                self._dwellTimer.start(round(1000*self._dwellDurationSec))
+                self._compressionLimitReached = True
+
+        if (self._compressionLimitReached and self._dwellDone):
+            if (not self._startedUpMovement):
+                self._startedUpMovement = True
+                self.pwmUp.start(100)
+            if (not GPIO.input(self._homePin)):
+                self.pwmUp.stop()
+                self._exitCondition = True
 
 
-
-        # TODO define rest of state (and probably do goButtonStatusChanged for signal instead)
-        self._exitCondition = True
+    def dwellElapsed(self):
+        self._dwellDone = True
+        self._dwellTimer.stop()
 
     def enter(self):
+        self._dwellDone = False
         self._exitCondition = False
         self._goButtonPressed = False
+        self._startedCompression = False
+        self._compressionLimitReached = False
         self._iterateTimer.start(round(1000.0/(1.0*self._iterateFreqHz)))
         print(f'\nstate: {self.name}') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
 
     def exit(self):
         newStateName = 'Welcome'
+        if (self._dwellTimer.isActive()):
+            self._dwellTimer.stop()
         if (not self._machine.setCurrentState(newStateName)): 
             raise Exception(f"Could not change current state of state machine to state named '{newStateName}'...")
         self._iterateTimer.stop()
