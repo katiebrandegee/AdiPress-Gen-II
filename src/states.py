@@ -194,7 +194,7 @@ class SampleSetupState(State):
         self._iterateTimer.timeout.connect(self.iterate)
         # TODO define how sensors are read
         # self.plungerSensor, self.compressionDrawerSensor, self.filtrateDrawerSensor, self.nfc = self.setupSampleSetupSensors()
-        self.plungerSensor, self.compressionDrawerSensor, self.filtrateDrawerSensor, self.consumableRFID = self.setupSampleSetupSensors()
+        self.plungerSensor, self.compressionDrawerSensor, self.filtrateDrawerSensor = self.setupSampleSetupSensors()
         
 
 #         # TODO remove below, just for testing slots in GUI
@@ -222,7 +222,7 @@ class SampleSetupState(State):
 #         nfc.addBoard("consumableRFID",self._consumableRFID_RST)
 #         nfc.addBoard("filtrateRFID",self._filtrateRFID_RST)
 
-        return plungerSensor, compressionDrawerSensor, filtrateDrawerSensor, consumableRFID
+        return plungerSensor, compressionDrawerSensor, filtrateDrawerSensor
 
     @property
     def name(self):
@@ -263,7 +263,6 @@ class SampleSetupState(State):
         if ((compressionDrawerSensorValue > self._compressionDrawerLimit) != self._compressionDrawerCheckPassed):
             self._compressionDrawerCheckPassed = (not self._compressionDrawerCheckPassed)
             self.compressionDrawerStatusChanged.emit("compressionDrawer", self._compressionDrawerCheckPassed)
-            print('ddd')
 
         # read compression drawer sensor (TODO update with actual sensor reading in if statement, left like this just for testing)
         # line below is just for testing: get rid once 3rd HES is working
@@ -271,17 +270,17 @@ class SampleSetupState(State):
 #         filtrateDrawerSensorValue = self.compressionDrawerSensor.value
         filtrateDrawerSensorValue = 100
         if ((filtrateDrawerSensorValue < self._filtrateDrawerLimit) != self._filtrateDrawerCheckPassed):
-            print('eee')
             self._filtrateDrawerCheckPassed = (not self._filtrateDrawerCheckPassed)
             self.filtrateDrawerStatusChanged.emit("filtrateDrawer", self._filtrateDrawerCheckPassed)
     
         allChecksPassed = (self._plungerCheckPassed and self._compressionDrawerCheckPassed and self._filtrateDrawerCheckPassed)
         # read consumable RFID (TODO update with actual RFID reading in if statement, left like this just for testing)
-        # Below is commented out while RFIDS arent working 
+        # Below is commented out while RFIDS arent working
+        
         if (self._compressionDrawerCheckPassed):
+            self._consumableRFID = 11111111
+#             self._consumableRFID = self.consumableRFID.read()
             
-            self._consumableRFID = self.consumableRFID.read()
-        print('dsfsdfsdf')
         # read consumable RFID (TODO update with actual RFID reading in if statement, left like this just for testing)
         if (self._filtrateDrawerCheckPassed):
             self._filtrateRFID = 22222222
@@ -369,7 +368,7 @@ class CompressionState(State):
 
         GPIO.output(self._UP_EN, GPIO.HIGH)
         GPIO.output(self._DOWN_EN, GPIO.HIGH)
-        GPIO.setup(self._goButtonPin, GPIO.IN)
+        GPIO.setup(self._goButtonPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.add_event_detect(self._goButtonPin, GPIO.FALLING, callback = self.buttonPressed, bouncetime = 75) # -----------------------------------------------
 
 
