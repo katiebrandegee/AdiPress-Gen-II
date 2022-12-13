@@ -252,14 +252,12 @@ class SampleSetupState(State):
 
         # read plunger sensor (TODO update with actual sensor reading in if statement, left like this just for testing)
         plungerSensorValue = self.plungerSensor.value
-        print('Plunger Val:', plungerSensorValue)
         if ((plungerSensorValue > self._plungerLimit) != self._plungerCheckPassed):
             self._plungerCheckPassed = (not self._plungerCheckPassed)
             self.plungerStatusChanged.emit("plunger", self._plungerCheckPassed)
 
         # read compression drawer sensor (TODO update with actual sensor reading in if statement, left like this just for testing)
         compressionDrawerSensorValue = self.compressionDrawerSensor.value
-        print('Compression Val:', compressionDrawerSensorValue)
         if ((compressionDrawerSensorValue > self._compressionDrawerLimit) != self._compressionDrawerCheckPassed):
             self._compressionDrawerCheckPassed = (not self._compressionDrawerCheckPassed)
             self.compressionDrawerStatusChanged.emit("compressionDrawer", self._compressionDrawerCheckPassed)
@@ -368,13 +366,19 @@ class CompressionState(State):
 
         GPIO.output(self._UP_EN, GPIO.HIGH)
         GPIO.output(self._DOWN_EN, GPIO.HIGH)
+        
+        GPIO.setup(self._endPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(self._homePin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        
         GPIO.setup(self._goButtonPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.add_event_detect(self._goButtonPin, GPIO.FALLING, callback = self.buttonPressed, bouncetime = 75) # -----------------------------------------------
-
-
+        
+        print(GPIO.input(self._UP_EN))
+        print(GPIO.input(self._DOWN_EN))
+        
         # set these better later
-        pwmUp = GPIO.PWM(self._UP_PWM, 50)
-        pwmDown = GPIO.PWM(self._DOWN_PWM, 50)
+        pwmUp = GPIO.PWM(self._UP_PWM, 1500)
+        pwmDown = GPIO.PWM(self._DOWN_PWM, 1500)
 
         pwmUp.start(0)
         pwmDown.start(0)
@@ -418,7 +422,9 @@ class CompressionState(State):
             if (not self._startedCompression):
                 self._startedCompression = True
                 self.pwmDown.start(100)
+            print(GPIO.input(self._endPin))
             if (self.currentSensor.value > self._currentLimit or not GPIO.input(self._endPin)):
+                print('got to stop')
                 self.pwmDown.stop()
                 self._dwellTimer.start(round(1000*self._dwellDurationSec))
                 self._compressionLimitReached = True
