@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QTimer, QObject, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QTimer, QObject, pyqtSignal, pyqtSlot, QThread
 import RPi.GPIO as GPIO
 import busio
 import board
@@ -11,6 +11,9 @@ import socket
 import datetime
 import sched
 from mfrc522 import SimpleMFRC522
+import time
+
+
 
 class State(QObject):
 
@@ -344,7 +347,9 @@ class CompressionState(State):
         self._dwellDone = False
         self._iterateTimer.timeout.connect(self.iterate)
         self._dwellTimer.timeout.connect(self.dwellElapsed)
+        self._startTime = -1
         self.pwmDown, self.pwmUp, self.currentSensor = self.setupCompressionSensors()
+
         # TODO define how sensors are read
 
     @property
@@ -353,7 +358,7 @@ class CompressionState(State):
     
     
     def buttonPressed(self, channel):
-        if (not self._goButtonPressed):
+        if (not self._goButtonPressed and self._machine.currState.name == self.name):
             self._goButtonPressed = True
             self.goButtonPressedEvent.emit()
 
@@ -372,9 +377,7 @@ class CompressionState(State):
         
         GPIO.setup(self._goButtonPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.add_event_detect(self._goButtonPin, GPIO.FALLING, callback = self.buttonPressed, bouncetime = 75) # -----------------------------------------------
-        
-        print(GPIO.input(self._UP_EN))
-        print(GPIO.input(self._DOWN_EN))
+    
         
         # set these better later
         pwmUp = GPIO.PWM(self._UP_PWM, 1500)
@@ -422,12 +425,16 @@ class CompressionState(State):
             if (not self._startedCompression):
                 self._startedCompression = True
                 self.pwmDown.start(100)
-            print(GPIO.input(self._endPin))
             if (self.currentSensor.value > self._currentLimit or not GPIO.input(self._endPin)):
                 print('got to stop')
                 self.pwmDown.stop()
-                self._dwellTimer.start(round(1000*self._dwellDurationSec))
+                
+                #self._dwellTimer.start(round(1000*self._dwellDurationSec))
                 self._compressionLimitReached = True
+                self._startTime = time.time()
+        if (self._startTime != -1 and time.time()-self._startTime > self._dwellDurationSec):
+            self._dwellDone = True
+            
 
         if (self._compressionLimitReached and self._dwellDone):
             if (not self._startedUpMovement):
@@ -439,7 +446,7 @@ class CompressionState(State):
 
     def dwellElapsed(self):
         self._dwellDone = True
-        self._dwellTimer.stop()
+#         self._dwellTimer.stop()
 
     def enter(self):
         self._dwellDone = False
@@ -448,12 +455,13 @@ class CompressionState(State):
         self._startedCompression = False
         self._compressionLimitReached = False
         self._iterateTimer.start(round(1000.0/(1.0*self._iterateFreqHz)))
+#         self._dwellTimer.start(round(1000*self._dwellDurationSec))
         print(f'\nstate: {self.name}') # TODO remove, just for testing (also print() NOT thread-safe, use logging instead)
 
     def exit(self):
         newStateName = 'Welcome'
-        if (self._dwellTimer.isActive()):
-            self._dwellTimer.stop()
+#         if (self._dwellTimer.isActive()):
+#             self._dwellTimer.stop()
         if (not self._machine.setCurrentState(newStateName)): 
             raise Exception(f"Could not change current state of state machine to state named '{newStateName}'...")
         self._iterateTimer.stop()
