@@ -90,6 +90,11 @@ class StateMachine(QObject):
         self._iterateTimer.stop()
         # potentially emit signal to states within machine
 
+    @pyqtSlot()
+    def receiveEmergencyEvent(self):
+        self._iterateTimer.stop()
+        # potentially emit signal to states within machine
+
     def getStateNames(self) -> list[str]:
         """Get list of all state names as strings defined within the state machine"""
         return [stateName for stateName in self._states.keys()]
