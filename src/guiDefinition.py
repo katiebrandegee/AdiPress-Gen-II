@@ -12,16 +12,44 @@ from PyQt5.QtWidgets import (
     QGraphicsOpacityEffect
 )
 
-class WelcomePage(QWidget):
+class Page(QWidget):
 
-    def __init__(self, parent=None):
+    _configFileSectionName = 'GuiPages'
+
+    def __init__(self, parsedConfig: dict[str, dict[str, str]], *, parent=None):
         super().__init__(parent=parent)
+        self._parsedConfig = parsedConfig
+        self.readRelevantStateConfigVars(self._parsedConfig)
+
+    @property
+    def name(self):
+        return 'null'
+
+    # only function that "magically" adds instance vars (i.e. class member vars)
+    # only hard-coded section, var names (e.g. iteratefreqhz) must match lower case keys in config.ini 
+    def readRelevantStateConfigVars(self, parsedConfig: dict[str, dict[str, str]]):
+        configFile = parsedConfig['CONFIG_FILE_NAME'] if 'CONFIG_FILE_NAME' in parsedConfig else 'config file'
+        if (self._configFileSectionName not in parsedConfig):
+            raise Exception(f"'{self._configFileSectionName}' section not found in {configFile}...")
+        try:
+            # add any other configurable parameters here
+            self._deviceName = parsedConfig[self._configFileSectionName]['devicename']
+            self._softwareVersion = parsedConfig[self._configFileSectionName]['softwareversion']
+        except:
+            raise Exception(f"All required configurable parameters were not found under the '{self._configFileSectionName}' or 'DEFAULT' sections in {configFile}...")
+
+
+
+class WelcomePage(Page):
+
+    def __init__(self, parsedConfig: dict[str, dict[str, str]], *, parent=None):
+        super().__init__(parsedConfig, parent=parent)
         self.setupPage()
 
     def setupPage(self):
         self.setObjectName("welcomePage")
         self._pageGraphic = self.setupPageGraphic(self)
-        self._deviceName, self._softwareVersion = self.getDeviceDetails(self)
+        self._deviceNameLabel, self._softwareVersionLabel = self.getDeviceDetails(self)
         self.retranslate()
 
     def setupPageGraphic(self, pageWidget: QWidget) -> QLabel:
@@ -46,7 +74,7 @@ class WelcomePage(QWidget):
         softwareFont = QtGui.QFont()
         softwareFont.setPointSize(16)
         softwareVersion = QLabel(pageWidget)
-        softwareVersion.setGeometry(QtCore.QRect(300, 280, 201, 51))
+        softwareVersion.setGeometry(QtCore.QRect(300, 320, 201, 51))
         softwareVersion.setFont(softwareFont)
         softwareVersion.setStyleSheet("color: black;\n"
                                       "border-image:none;")
@@ -56,15 +84,16 @@ class WelcomePage(QWidget):
 
     def retranslate(self):
         _translate = QtCore.QCoreApplication.translate
-        self._deviceName.setText(_translate("MainWindow", "Device"))
-        self._softwareVersion.setText(_translate("MainWindow", "Software Version 1.2.1"))
+        self._deviceNameLabel.setText(_translate("MainWindow", self._deviceName))
+        self._softwareVersionLabel.setText(_translate("MainWindow", self._softwareVersion))
 
 
 
 class GUIComponents(object):
 
-    def __init__(self, mainWindow: QMainWindow):
+    def __init__(self, parsedConfig: dict[str, dict[str, str]], mainWindow: QMainWindow):
         self._mainWindow = mainWindow
+        self._parsedConfig = parsedConfig
         self.setupUI()
         self.retranslate(self._mainWindow, self._pagesList)
         self.stackedWidget.setCurrentIndex(0)
@@ -94,7 +123,7 @@ class GUIComponents(object):
 
     def constructPages(self) -> list[QWidget]:
         pages = list()
-        pages.append(WelcomePage())
+        pages.append(WelcomePage(self._parsedConfig))
         # TODO add all pages
         return pages
 
@@ -112,6 +141,66 @@ class GUIComponents(object):
         mainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         for page in pages:
             page.retranslate()
+
+
+# TODO update with underscores as appropriate for instance variables
+class GUITransitions(object):
+
+    def __init__(self, parsedConfig: dict[str, dict[str, str]], mainWindow: QMainWindow, guiComponents: GUIComponents):
+        self.mainWindow = mainWindow
+        self.guiComponents = guiComponents
+        self._parsedConfig = parsedConfig
+
+    def swapPages(self, newPage: str, currPage: str=None):
+        if ((currPage and currPage not in self.guiComponents.pages.keys()) or newPage not in self.guiComponents.pages.keys()):
+            if (currPage):
+                raise Exception(f"Either new page name '{newPage}' or current page name '{currPage}' not found in list of defined pages...")
+            else:
+                raise Exception(f"New page name '{newPage}' not found in list of defined pages...")
+
+        newPage = self.guiComponents.pages[newPage]
+        if (currPage):
+            oldPage = self.guiComponents.pages[currPage]
+            self.slidePageUpOut(oldPage)
+            self.fade(oldPage)
+        self.slidePageUpIn(newPage)
+        self.guiComponents.stackedWidget.setCurrentWidget(newPage)
+
+    def slidePageUpIn(self, widget: QWidget):
+        self.unfade(widget)
+        self.animIn = QtCore.QPropertyAnimation(widget, b"geometry")
+        self.animIn.setDuration(500)
+        self.animIn.setEasingCurve(QtCore.QEasingCurve.InOutQuad)
+        self.animIn.setStartValue(QtCore.QRect(0, 100, 800, 480))
+        self.animIn.setEndValue(QtCore.QRect(0, 0, 800, 480))
+        self.animIn.start()
+
+    def slidePageUpOut(self, widget: QWidget):
+        self.unfade(widget)
+        self.animOut = QtCore.QPropertyAnimation(widget, b"geometry")
+        self.animOut.setDuration(500)
+        self.animOut.setEasingCurve(QtCore.QEasingCurve.InOutQuad)
+        self.animOut.setStartValue(QtCore.QRect(0, 0, 800, 480))
+        self.animOut.setEndValue(QtCore.QRect(0, -100, 800, 480))
+        self.animOut.start()
+
+    def fade(self, widget: QWidget):
+        self.effect = QGraphicsOpacityEffect()
+        widget.setGraphicsEffect(self.effect)
+        self.animFade = QtCore.QPropertyAnimation(self.effect, b"opacity")
+        self.animFade.setDuration(500)
+        self.animFade.setStartValue(1)
+        self.animFade.setEndValue(0)
+        self.animFade.start()
+
+    def unfade(self, widget: QWidget):
+        self.effect = QGraphicsOpacityEffect()
+        widget.setGraphicsEffect(self.effect)
+        self.animUnfade = QtCore.QPropertyAnimation(self.effect, b"opacity")
+        self.animUnfade.setDuration(500)
+        self.animUnfade.setStartValue(0)
+        self.animUnfade.setEndValue(1)
+        self.animUnfade.start()
 
 
 if __name__ == "__main__":

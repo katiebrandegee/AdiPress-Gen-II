@@ -4,10 +4,13 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 class GUIComponents(object):
 
+    configFileSectionName = 'GuiPages'
     pageNames = ("Welcome", "MachineSetup", "MachineSetup2", "SampleSetup", "Compression", "Compression2", "Compression3", "Settings")
 
-    def __init__(self, mainWindow: QtWidgets.QMainWindow):
+    def __init__(self, parsedConfig: dict[str, dict[str, str]], mainWindow: QtWidgets.QMainWindow):
         self.mainWindow = mainWindow
+        self.parsedConfig = parsedConfig
+        self.readRelevantStateConfigVars(self.parsedConfig)
         self.pages = {name: QtWidgets.QWidget() for name in self.pageNames}
         self.setupUI(self.mainWindow, self.pages)
 
@@ -388,8 +391,8 @@ class GUIComponents(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.deviceName.setText(_translate("MainWindow", "Device"))
-        self.software_version.setText(_translate("MainWindow", "Software Version 1.2.1"))
+        self.deviceName.setText(_translate("MainWindow", self.paramDeviceName))
+        self.software_version.setText(_translate("MainWindow", self.paramSoftwareVersion))
         self.setupComplete_txt.setText(_translate("MainWindow", "Setup\n"
 " Complete"))
         self.homepage_msg.setText(_translate("MainWindow", "Press Dial\n"
@@ -412,12 +415,24 @@ class GUIComponents(object):
         self.pressGoMachineSetup_txt.setText(_translate("MainWindow", "Press Go to Home Device"))
         self.success_txt.setText(_translate("MainWindow", "Compression Done"))
 
+    def readRelevantStateConfigVars(self, parsedConfig: dict[str, dict[str, str]]):
+        configFile = parsedConfig['CONFIG_FILE_NAME'] if 'CONFIG_FILE_NAME' in parsedConfig else 'config file'
+        if (self.configFileSectionName not in parsedConfig):
+            raise Exception(f"'{self.configFileSectionName}' section not found in {configFile}...")
+        try:
+            # add any other configurable parameters here
+            self.paramDeviceName = parsedConfig[self.configFileSectionName]['devicename']
+            self.paramSoftwareVersion = parsedConfig[self.configFileSectionName]['softwareversion']
+        except:
+            raise Exception(f"All required configurable parameters were not found under the '{self.configFileSectionName}' or 'DEFAULT' sections in {configFile}...")
+
 
 class GUITransitions(object):
 
-    def __init__(self, mainWindow: QtWidgets.QMainWindow, guiComponents: GUIComponents):
+    def __init__(self, parsedConfig: dict[str, dict[str, str]], mainWindow: QtWidgets.QMainWindow, guiComponents: GUIComponents):
         self.mainWindow = mainWindow
         self.guiComponents = guiComponents
+        self.parsedConfig = parsedConfig
 
     def swapPages(self, newPage: str, currPage: str=None):
         if ((currPage and currPage not in self.guiComponents.pages.keys()) or newPage not in self.guiComponents.pages.keys()):

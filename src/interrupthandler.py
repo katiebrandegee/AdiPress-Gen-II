@@ -26,6 +26,7 @@ class InterruptHandler(QObject):
 
     def makeConnections(self):
         self._iterateTimer.timeout.connect(self.iterate)
+        self.emergencyStopSignal.connect(self.receiveEmergencyEvent)
 
     @pyqtSlot()
     def run(self):
@@ -44,4 +45,8 @@ class InterruptHandler(QObject):
 
     @pyqtSlot()
     def receiveCloseEvent(self):
+        self._iterateTimer.stop()
+
+    @pyqtSlot()
+    def receiveEmergencyEvent(self):
         self._iterateTimer.stop()

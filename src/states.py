@@ -38,7 +38,7 @@ class State(QObject):
         if (self._configFileSectionName not in parsedConfig):
             raise Exception(f"'{self._configFileSectionName}' section not found in {configFile}...")
         try:
-            # TODO add any other configurable parameters here
+            # add any other configurable parameters here
             self._iterateFreqHz = int(parsedConfig[self._configFileSectionName]['iteratefreqhz'])
         except:
             raise Exception(f"All required configurable parameters were not found under the '{self._configFileSectionName}' or 'DEFAULT' sections in {configFile}...")

@@ -1,6 +1,7 @@
 import sys
+# from guiDefinition import GUIComponents, GUITransitions
 from uglyGuiDefinition import GUIComponents, GUITransitions
-from statemachine import StateMachine
+# from statemachine import StateMachine
 from interrupthandler import InterruptHandler
 from configparser import ConfigParser
 from PyQt5.QtCore import QTimer, QThread, pyqtSignal, pyqtSlot
@@ -15,14 +16,17 @@ class GUI(QMainWindow):
     _threadNameInterruptHandler = 'InterruptHandler'
     _additionalThreads = (_threadNameStateMachine, _threadNameInterruptHandler)
 
+    _stateMachineExists = False
+    _interruptHandlerExists = False
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._guiComponents = GUIComponents(self)
-        self._guiTransitions = GUITransitions(self, self._guiComponents)
         self._parsedConfig = self.parseConfig()
+        self._guiComponents = GUIComponents(self._parsedConfig, mainWindow=self)
+        self._guiTransitions = GUITransitions(self._parsedConfig, mainWindow=self, guiComponents=self._guiComponents)
 
         self._otherThreads = self.constructThreads(self._additionalThreads)
-        self._machine = self.constructStateMachine()
+        # self._machine = self.constructStateMachine()
         self._interruptHandler = self.constructInterruptHandler()
         self.setupConnections()
 
@@ -41,11 +45,17 @@ class GUI(QMainWindow):
     def setupConnections(self):
         for thread in self._otherThreads.values():
             self.aboutToQuit.connect(thread.quit)
-        self.aboutToQuit.connect(self._machine.receiveCloseEvent)
-        self.aboutToQuit.connect(self._interruptHandler.receiveCloseEvent)
-        self._interruptHandler.emergencyStopSignal.connect(self.receiveEmergencyEvent)
-        self._interruptHandler.emergencyStopSignal.connect(self._machine.receiveEmergencyEvent)
-        self._machine.stateChangedSignal.connect(self.machineStateChanged)
+        
+        if (self._stateMachineExists):
+            self.aboutToQuit.connect(self._machine.receiveCloseEvent)
+            self._machine.stateChangedSignal.connect(self.machineStateChanged)
+        
+        if (self._interruptHandlerExists):
+            self.aboutToQuit.connect(self._interruptHandler.receiveCloseEvent)
+            self._interruptHandler.emergencyStopSignal.connect(self.receiveEmergencyEvent)
+
+        if (self._stateMachineExists and self._interruptHandlerExists):
+            self._interruptHandler.emergencyStopSignal.connect(self._machine.receiveEmergencyEvent)
 
     @pyqtSlot(str, str)
     def machineStateChanged(self, newStateName: str, oldStateName: str):
@@ -75,21 +85,23 @@ class GUI(QMainWindow):
     def constructThreads(self, newThreadNames: tuple[str]) -> dict[str, QThread]:
         return {threadName: QThread() for threadName in newThreadNames}
 
-    def constructStateMachine(self) -> StateMachine:
-        # TODO check if QThread object within _otherThreads dict is actually valid
-        if (self._threadNameStateMachine not in self._otherThreads):
-            raise Exception("Thread for state machine could not be found...")
+    # def constructStateMachine(self) -> StateMachine:
+    #     # TODO check if QThread object within _otherThreads dict is actually valid
+    #     if (self._threadNameStateMachine not in self._otherThreads):
+    #         raise Exception("Thread for state machine could not be found...")
 
-        machine = StateMachine(self._parsedConfig, self)
-        newThread = self._otherThreads[self._threadNameStateMachine]
-        machine.moveToThread(newThread)
+    #     machine = StateMachine(self._parsedConfig, self)
+    #     newThread = self._otherThreads[self._threadNameStateMachine]
+    #     machine.moveToThread(newThread)
 
-        # TODO move to setupConnections()
-        newThread.started.connect(machine.run)
-        newThread.finished.connect(newThread.deleteLater)
-        newThread.finished.connect(machine.deleteLater)
+    #     # TODO move to setupConnections()
+    #     newThread.started.connect(machine.run)
+    #     newThread.finished.connect(newThread.deleteLater)
+    #     newThread.finished.connect(machine.deleteLater)
+
+    #     self._stateMachineExists = True
                 
-        return machine
+    #     return machine
 
     def constructInterruptHandler(self) -> InterruptHandler:
         # TODO check if QThread object within _otherThreads dict is actually valid
@@ -105,6 +117,8 @@ class GUI(QMainWindow):
         newThread.finished.connect(newThread.deleteLater)
         newThread.finished.connect(inthandler.deleteLater)
 
+        self._interruptHandlerExists = True
+
         return inthandler
 
     def closeEvent(self, event):
@@ -117,7 +131,6 @@ class GUI(QMainWindow):
         print("emergency event received, closing") # TODO remove
         self.aboutToQuit.emit()
         # TODO ensure all threads finished and QObjects deleted
-
 
 
 if __name__ == "__main__":
