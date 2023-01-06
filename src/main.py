@@ -1,5 +1,5 @@
 USE_HARDWARE = False # TODO remove in future
-USE_NEW_GUI_DEFINITION = True # TODO remove in future
+USE_NEW_GUI_DEFINITION = False # TODO remove in future
     
 import sys
 from interrupthandler import InterruptHandler

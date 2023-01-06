@@ -1,4 +1,4 @@
-import assets_rc_rc
+import assets_rc
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import (
     QApplication,
@@ -24,6 +24,9 @@ class Page(QWidget):
     @property
     def name(self):
         return 'null'
+
+    def setupPage(self):
+        pass
 
     # only function that "magically" adds instance vars (i.e. class member vars)
     # only hard-coded section, var names (e.g. iteratefreqhz) must match lower case keys in config.ini 
@@ -54,8 +57,8 @@ class WelcomePage(Page):
 
     def setupPageGraphic(self, pageWidget: QWidget) -> QLabel:
         pageGraphic = QLabel(pageWidget)
-        pageGraphic.setGeometry(QtCore.QRect(300, 70, 200, 200))
-        pageGraphic.setStyleSheet("border-image: url(:/newPrefix/image_1.png);")
+        pageGraphic.setGeometry(QtCore.QRect(0, 0, 800, 480))
+        pageGraphic.setStyleSheet("border-image: url(:/newPrefix/WelcomeScreen.jpg);")
         pageGraphic.setText("")
         pageGraphic.setObjectName("welcomePageGraphic")
         return pageGraphic
@@ -86,7 +89,9 @@ class WelcomePage(Page):
         _translate = QtCore.QCoreApplication.translate
         self._deviceNameLabel.setText(_translate("MainWindow", self._deviceName))
         self._softwareVersionLabel.setText(_translate("MainWindow", self._softwareVersion))
-
+        # TODO maybe just remove these labels entirely
+        self._deviceNameLabel.setVisible(False)
+        self._softwareVersionLabel.setVisible(False)
 
 
 class GUIComponents(object):

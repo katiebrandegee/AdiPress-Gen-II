@@ -1,4 +1,4 @@
-import assets_rc_rc
+import assets_rc
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
@@ -30,8 +30,8 @@ class GUIComponents(object):
         self.welcome_page = pages["Welcome"]
         self.welcome_page.setObjectName("welcome_page")
         self.welcomePage_img = QtWidgets.QLabel(self.welcome_page)
-        self.welcomePage_img.setGeometry(QtCore.QRect(300, 70, 200, 200))
-        self.welcomePage_img.setStyleSheet("border-image: url(:/newPrefix/image_1.png);")
+        self.welcomePage_img.setGeometry(QtCore.QRect(0, 0, 800, 480))
+        self.welcomePage_img.setStyleSheet("border-image: url(:/newPrefix/WelcomeScreen.jpg);")
         self.welcomePage_img.setText("")
         self.welcomePage_img.setObjectName("welcomePage_img")
         self.deviceName = QtWidgets.QLabel(self.welcome_page)
@@ -337,6 +337,12 @@ class GUIComponents(object):
         
         self.pressGo_page = self.pages["Compression"]
         self.pressGo_page.setObjectName("pressGo_page")
+        self.pressGo_img = QtWidgets.QLabel(self.pressGo_page)
+        self.pressGo_img.setEnabled(True)
+        self.pressGo_img.setGeometry(QtCore.QRect(0, 0, 800, 480))
+        self.pressGo_img.setStyleSheet("border-image: url(:/newPrefix/GoScreen.jpg);")
+        self.pressGo_img.setAlignment(QtCore.Qt.AlignCenter)
+        self.pressGo_img.setObjectName("pressGo_img")
         self.pressGo_txt = QtWidgets.QLabel(self.pressGo_page)
         self.pressGo_txt.setEnabled(True)
         self.pressGo_txt.setGeometry(QtCore.QRect(0, 190, 801, 91))
@@ -414,6 +420,11 @@ class GUIComponents(object):
         self.pressGo_txt.setText(_translate("MainWindow", "Press Go for Compression"))
         self.pressGoMachineSetup_txt.setText(_translate("MainWindow", "Press Go to Home Device"))
         self.success_txt.setText(_translate("MainWindow", "Compression Done"))
+
+        # TODO maybe just remove these labels entirely
+        self.pressGo_txt.setVisible(False)
+        self.deviceName.setVisible(False)
+        self.software_version.setVisible(False)
 
     def readRelevantStateConfigVars(self, parsedConfig: dict[str, dict[str, str]]):
         configFile = parsedConfig['CONFIG_FILE_NAME'] if 'CONFIG_FILE_NAME' in parsedConfig else 'config file'
