@@ -1,11 +1,19 @@
+USE_HARDWARE = False # TODO remove in future
+USE_NEW_GUI_DEFINITION = True # TODO remove in future
+    
 import sys
-# from guiDefinition import GUIComponents, GUITransitions
-from uglyGuiDefinition import GUIComponents, GUITransitions
-# from statemachine import StateMachine
 from interrupthandler import InterruptHandler
 from configparser import ConfigParser
 from PyQt5.QtCore import QTimer, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication, QMainWindow
+
+if USE_HARDWARE:
+    from statemachine import StateMachine
+
+if USE_NEW_GUI_DEFINITION:
+    from guiDefinition import GUIComponents, GUITransitions
+else:
+    from uglyGuiDefinition import GUIComponents, GUITransitions
 
 class GUI(QMainWindow):
 
@@ -26,7 +34,8 @@ class GUI(QMainWindow):
         self._guiTransitions = GUITransitions(self._parsedConfig, mainWindow=self, guiComponents=self._guiComponents)
 
         self._otherThreads = self.constructThreads(self._additionalThreads)
-        # self._machine = self.constructStateMachine()
+        if (USE_HARDWARE):
+            self._machine = self.constructStateMachine()
         self._interruptHandler = self.constructInterruptHandler()
         self.setupConnections()
 
@@ -85,23 +94,23 @@ class GUI(QMainWindow):
     def constructThreads(self, newThreadNames: tuple[str]) -> dict[str, QThread]:
         return {threadName: QThread() for threadName in newThreadNames}
 
-    # def constructStateMachine(self) -> StateMachine:
-    #     # TODO check if QThread object within _otherThreads dict is actually valid
-    #     if (self._threadNameStateMachine not in self._otherThreads):
-    #         raise Exception("Thread for state machine could not be found...")
+    def constructStateMachine(self):# -> StateMachine: # TODO: add return type hint back after removing USE_HARDWARE bool
+        # TODO check if QThread object within _otherThreads dict is actually valid
+        if (self._threadNameStateMachine not in self._otherThreads):
+            raise Exception("Thread for state machine could not be found...")
 
-    #     machine = StateMachine(self._parsedConfig, self)
-    #     newThread = self._otherThreads[self._threadNameStateMachine]
-    #     machine.moveToThread(newThread)
+        machine = StateMachine(self._parsedConfig, self)
+        newThread = self._otherThreads[self._threadNameStateMachine]
+        machine.moveToThread(newThread)
 
-    #     # TODO move to setupConnections()
-    #     newThread.started.connect(machine.run)
-    #     newThread.finished.connect(newThread.deleteLater)
-    #     newThread.finished.connect(machine.deleteLater)
+        # TODO move to setupConnections()
+        newThread.started.connect(machine.run)
+        newThread.finished.connect(newThread.deleteLater)
+        newThread.finished.connect(machine.deleteLater)
 
-    #     self._stateMachineExists = True
+        self._stateMachineExists = True
                 
-    #     return machine
+        return machine
 
     def constructInterruptHandler(self) -> InterruptHandler:
         # TODO check if QThread object within _otherThreads dict is actually valid
