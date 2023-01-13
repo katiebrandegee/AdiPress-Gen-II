@@ -24,7 +24,7 @@ class GUIComponents(object):
         self.gridLayout.setSpacing(0)
         self.gridLayout.setObjectName("gridLayout")
         self.stackedWidget = QtWidgets.QStackedWidget(self.centralwidget)
-        self.stackedWidget.setStyleSheet("background-color: white;")
+        self.stackedWidget.setStyleSheet("background-color: rgb(150, 222, 202);")
         self.stackedWidget.setObjectName("stackedWidget")
         
         self.welcome_page = pages["Welcome"]
@@ -60,9 +60,10 @@ class GUIComponents(object):
         self.frame.setGeometry(QtCore.QRect(390, 50, 370, 370))
         self.frame.setMinimumSize(QtCore.QSize(370, 370))
         self.frame.setMaximumSize(QtCore.QSize(370, 370))
-        self.frame.setStyleSheet("border-image:none;")
-        self.frame.setFrameShape(QtWidgets.QFrame.NoFrame)
-        self.frame.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.frame.setStyleSheet("border-image: url(:/newPrefix/compressionSetupBackground.jpg);")
+#         self.frame.setStyleSheet("border-image:none;")
+#         self.frame.setFrameShape(QtWidgets.QFrame.NoFrame)
+#         self.frame.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame.setObjectName("frame")
         self.gridLayout_2 = QtWidgets.QGridLayout(self.frame)
         self.gridLayout_2.setSpacing(30)
@@ -78,12 +79,15 @@ class GUIComponents(object):
         self.gridLayout_3.setContentsMargins(5, 5, 5, 5)
         self.gridLayout_3.setObjectName("gridLayout_3")
         self.img_1 = QtWidgets.QLabel(self.img_1_frame)
-        self.img_1.setStyleSheet("border-image: url(:/newPrefix/image_2.png);\n"
-"border-radius: 10px;")
+        self.img_1.setStyleSheet("border-image: url(:/newPrefix/Plunger.png);\n"
+"border-radius: 10px;\n" "background-color: rgb(186, 38, 38)")
         self.img_1.setText("")
         self.img_1.setObjectName("img_1")
         self.gridLayout_3.addWidget(self.img_1, 0, 0, 1, 1)
         self.gridLayout_2.addWidget(self.img_1_frame, 0, 0, 1, 1)
+        
+        
+        
         self.img_2_frame = QtWidgets.QFrame(self.frame)
         self.img_2_frame.setStyleSheet("border-radius: 10px;\n"
 "background-color: red;")
@@ -92,16 +96,19 @@ class GUIComponents(object):
         self.img_2_frame.setLineWidth(0)
         self.img_2_frame.setObjectName("img_2_frame")
         self.gridLayout_4 = QtWidgets.QGridLayout(self.img_2_frame)
-        self.gridLayout_4.setContentsMargins(5, 5, 5, 5)
+        self.gridLayout_4.setContentsMargins(5, 5, 5, 5) # sets the widths of the outline 
         self.gridLayout_4.setObjectName("gridLayout_4")
         self.img_2 = QtWidgets.QLabel(self.img_2_frame)
         self.img_2.setMinimumSize(QtCore.QSize(148, 148))
-        self.img_2.setStyleSheet("border-image: url(:/newPrefix/image_3.png);\n"
-"border-radius: 10px;")
+        self.img_2.setStyleSheet("border-image: url(:/newPrefix/CompressionCup.png);\n"
+"border-radius: 10px;\n" "background-color: rgb(186, 38, 38)")
         self.img_2.setText("")
         self.img_2.setObjectName("img_2")
         self.gridLayout_4.addWidget(self.img_2, 0, 0, 1, 1)
         self.gridLayout_2.addWidget(self.img_2_frame, 0, 1, 1, 1)
+        
+        
+        ##########################
         self.img_3_frame = QtWidgets.QFrame(self.frame)
         self.img_3_frame.setStyleSheet("border-radius: 10px;\n"
 "background-color: red;")
@@ -113,13 +120,38 @@ class GUIComponents(object):
         self.gridLayout_6.setContentsMargins(5, 5, 5, 5)
         self.gridLayout_6.setObjectName("gridLayout_6")
         self.img_3 = QtWidgets.QLabel(self.img_3_frame)
-        self.img_3.setMinimumSize(QtCore.QSize(148, 148))
-        self.img_3.setStyleSheet("border-image: url(:/newPrefix/image_5.png);\n"
-"border-radius: 10px;")
+        self.img_3.setMinimumSize(QtCore.QSize(50, 50))
+        self.img_3.setStyleSheet("border-image: url(:/newPrefix/DrawersTop.png);\n"
+"border-radius: 10px;\n" "background-color: rgb(186, 38, 38)")
         self.img_3.setText("")
         self.img_3.setObjectName("img_3")
         self.gridLayout_6.addWidget(self.img_3, 0, 0, 1, 1)
         self.gridLayout_2.addWidget(self.img_3_frame, 1, 0, 1, 1)
+        
+        
+        
+        ##########################
+#         self.img_3_frame = QtWidgets.QFrame(self.frame)
+#         self.img_3_frame.setStyleSheet("border-radius: 10px;\n"
+# "background-color: red;")
+#         self.img_3_frame.setFrameShape(QtWidgets.QFrame.Box)
+#         self.img_3_frame.setFrameShadow(QtWidgets.QFrame.Plain)
+#         self.img_3_frame.setLineWidth(0)
+#         self.img_3_frame.setObjectName("img_3_frame")
+#         self.gridLayout_6 = QtWidgets.QGridLayout(self.img_3_frame)
+#         self.gridLayout_6.setContentsMargins(5, 5, 5, 5)
+#         self.gridLayout_6.setObjectName("gridLayout_6")
+#         self.img_3 = QtWidgets.QLabel(self.img_3_frame)
+#         self.img_3.setMinimumSize(QtCore.QSize(148, 148))
+#         self.img_3.setStyleSheet("border-image: url(:/newPrefix/Drawers.png);\n"
+# "border-radius: 10px;")
+#         self.img_3.setText("")
+#         self.img_3.setObjectName("img_3")
+#         self.gridLayout_6.addWidget(self.img_3, 0, 0, 1, 1)
+#         self.gridLayout_2.addWidget(self.img_3_frame, 1, 0, 1, 1)
+#         
+      ############## New ^^^  
+        
         self.img_4_frame = QtWidgets.QFrame(self.frame)
         self.img_4_frame.setStyleSheet("border-radius: 10px;\n"
 "background-color: red;")
@@ -132,8 +164,8 @@ class GUIComponents(object):
         self.gridLayout_5.setObjectName("gridLayout_5")
         self.img_4 = QtWidgets.QLabel(self.img_4_frame)
         self.img_4.setMinimumSize(QtCore.QSize(148, 148))
-        self.img_4.setStyleSheet("border-image: url(:/newPrefix/image_4.png);\n"
-"border-radius: 10px;")
+        self.img_4.setStyleSheet("border-image: url(:/newPrefix/CatchCup.png);\n"
+"border-radius: 10px;\n" "background-color: rgb(186, 38, 38)")
         self.img_4.setText("")
         self.img_4.setObjectName("img_4")
         self.gridLayout_5.addWidget(self.img_4, 0, 0, 1, 1)
